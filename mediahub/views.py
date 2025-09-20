@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse
-from .models import Library, MediaItem
+from .models import Library, MediaItem, FolderItem
 from .scanner import scan_once, load_config
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
@@ -27,23 +27,77 @@ def library_view(request, lib_slug):
     lib = get_object_or_404(Library, slug=lib_slug)
     if lib.hidden and not request.session.get("show_hidden"):
         raise Http404("Library hidden")
-    items = lib.items.all().order_by("title")
 
-    # build URLs depending on type
-    for idx, it in enumerate(items):
-        if lib.hidden:
-            it.poster_url = f"/media/preview/?path={it.file_path}"
-        elif it.poster:
-            it.poster_url = "/static_cache/posters/" + it.poster
-        else:
-            it.poster_url = "/static/mediahub-placeholder.png"
+    # Get optional folder id for drill-down
+    folder_id = request.GET.get("folder")  # None for root
+    current_path = []
 
-        ext = os.path.splitext(it.file_path)[1].lower()
-        if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
-            it.viewer_url = f"/media/image/?lib={lib.slug}&index={idx}"
+    folder = None
+    if lib.type == "pictures":
+        if folder_id:
+            folder = get_object_or_404(FolderItem, id=folder_id, library=lib)
+            subfolders = folder.subfolders.all().order_by("name")
+            pictures = folder.items.all().order_by("title")
+
+            f = folder
+            while f:
+                current_path.insert(0, f.name)
+                f = f.parent
         else:
-            it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}"
-    return render(request, "library.html", {"library": lib, "items": items})
+            # root-level folders and pictures
+            subfolders = lib.folders.filter(parent__isnull=True).order_by("name")
+            pictures = lib.items.filter(folder__isnull=True).order_by("title")
+
+        # Combine folders and pictures, folders first
+        items = list(subfolders) + list(pictures)
+
+        # Build URLs for each item
+        for idx, it in enumerate(items):
+            if isinstance(it, FolderItem):
+                it.viewer_url = f"?folder={it.id}"  # drill-down
+                it.poster_url = f"/media/preview/?path={it.poster}" if it.poster else "/static/mediahub-placeholder.png"
+            else:  # MediaItem
+                if lib.hidden:
+                    it.poster_url = f"/media/preview/?path={it.file_path}"
+                elif it.poster:
+                    it.poster_url = "/static_cache/posters/" + it.poster
+                else:
+                    it.poster_url = "/static/mediahub-placeholder.png"
+
+                ext = os.path.splitext(it.file_path)[1].lower()
+                if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+                    it.viewer_url = f"/media/image/?lib={lib.slug}&index={idx}&folder={folder.path if folder else None}"
+                else:
+                    it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}&folder={folder.path if folder else None}"
+
+    else:
+        # Movies / other types remain as before
+        items = lib.items.all().order_by("title")
+        for idx, it in enumerate(items):
+            if lib.hidden:
+                it.poster_url = f"/media/preview/?path={it.file_path}"
+            elif it.poster:
+                it.poster_url = "/static_cache/posters/" + it.poster
+            else:
+                it.poster_url = "/static/mediahub-placeholder.png"
+
+            ext = os.path.splitext(it.file_path)[1].lower()
+            if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+                it.viewer_url = f"/media/image/?lib={lib.slug}&index={idx}"
+            else:
+                it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}"
+
+    for it in items:
+        if isinstance(it, FolderItem):
+            it.item_type = "folder"
+        else:
+            it.item_type = "media"
+
+    current_path.insert(0, lib.name)
+    breadcrumb_path = "/" + "/".join(current_path)
+    parent_id = folder.parent.id if folder and folder.parent else None
+
+    return render(request, "library.html", {"library": lib, "items": items, "breadcrumb_path": breadcrumb_path, "parent_id": parent_id})
 
 def refresh_view(request):
     scan_once()
@@ -140,8 +194,10 @@ def hide_hidden(request):
 def image_viewer(request):
     lib_slug = request.GET.get("lib")
     index = int(request.GET.get("index", 0))
+    folder_path = request.GET.get("folder")
 
     lib = get_object_or_404(Library, slug=lib_slug)
+    folder = FolderItem.objects.get(path=folder_path)
     items = list(lib.items.filter(
         file_path__iregex=r"\.(jpg|jpeg|png|gif|webp)$"
     ).order_by("title"))
@@ -153,9 +209,26 @@ def image_viewer(request):
     prev_index = index - 1 if index > 0 else None
     next_index = index + 1 if index < len(items) - 1 else None
 
+    parent_id = folder.id if folder else None
+
+    print(parent_id)
+
+    current_path = []
+    
+    while folder:
+        current_path.insert(0, folder.name)
+        folder = folder.parent
+
+    current_path.insert(0, lib.name)
+    breadcrumb_path = "/" + "/".join(current_path)
+
     return render(request, "image_viewer.html", {
         "library": lib,
         "current": current,
         "prev_index": prev_index,
         "next_index": next_index,
+        "parent_id": parent_id,
+        "breadcrumb_path": breadcrumb_path,
+        "folder": folder_path
     })
+

@@ -52,43 +52,82 @@
   </head>
 <body>
 
-<header>
-  <a href="/library/{{ library.slug }}/" style="color:white;">⬅ Back</a>
-</header>
+  <nav class="navbar navbar-dark bg-dark sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand mb-0 h1" href="{% url 'index' %}">MediaHub</span></a>
+      {% if breadcrumb_path %}
+        <span class="navbar-text ms-3">
+          <!-- Back button -->
+          <button id="back-btn" class="btn btn-outline-light btn-sm me-2" {% if parent_id %} data-parent-id="{{ parent_id }}"{% endif %}>← Back</button>
+          {{ breadcrumb_path }}
+        </span>
+      {% endif %}
+      <div class="d-flex ms-auto">
+        <a class="btn btn-outline-light btn-sm me-2" href="/refresh/">Refresh</a>
+      </div>
+    </div>
+  </nav>
 
 <main>
   <img id="current-img" src="/media/stream/?path={{ current.file_path }}" alt="{{ current.title }}">
 </main>
 
 {% if prev_index is not None %}
-<a class="nav left" id="prev-link" href="/media/image/?lib={{ library.slug }}&index={{ prev_index }}">⟨</a>
+<a class="nav left" id="prev-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&index={{ prev_index }}">⟨</a>
 {% endif %}
 {% if next_index is not None %}
-<a class="nav right" id="next-link" href="/media/image/?lib={{ library.slug }}&index={{ next_index }}">⟩</a>
+<a class="nav right" id="next-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&index={{ next_index }}">⟩</a>
 {% endif %}
 
 <script>
 
-// Keyboard nav
-document.addEventListener("keydown", e => {
-    if (e.key === "ArrowLeft" && document.querySelector(".left")) document.querySelector(".left").click();
-    if (e.key === "ArrowRight" && document.querySelector(".right")) document.querySelector(".right").click();
-    if (e.key === "Escape") window.location.href = "/library/{{ library.slug }}/";
-});
+  // Keyboard nav
+  document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft" && document.querySelector(".left")) document.querySelector(".left").click();
+      if (e.key === "ArrowRight" && document.querySelector(".right")) document.querySelector(".right").click();
+      if (e.key === "Escape") window.location.href = "/library/{{ library.slug }}/";
+  });
 
-// Touch swipe support
-let touchStartX = null;
-const threshold = 50; // px to detect swipe
+  // Touch swipe support
+  let touchStartX = null;
+  const threshold = 50; // px to detect swipe
 
-document.addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; });
-document.addEventListener("touchend", e => {
-    if (touchStartX === null) return;
-    let touchEndX = e.changedTouches[0].screenX;
-    let diff = touchEndX - touchStartX;
-    if (diff > threshold && document.querySelector(".left")) document.querySelector(".left").click(); // swipe right
-    if (diff < -threshold && document.querySelector(".right")) document.querySelector(".right").click(); // swipe left
-    touchStartX = null;
-});
+  document.addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener("touchend", e => {
+      if (touchStartX === null) return;
+      let touchEndX = e.changedTouches[0].screenX;
+      let diff = touchEndX - touchStartX;
+      if (diff > threshold && document.querySelector(".left")) document.querySelector(".left").click(); // swipe right
+      if (diff < -threshold && document.querySelector(".right")) document.querySelector(".right").click(); // swipe left
+      touchStartX = null;
+  });
+
+document.addEventListener("DOMContentLoaded", function() {
+      const backBtn = document.getElementById("back-btn");
+      backBtn.addEventListener("click", function() {
+          // Get current URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const folderId = urlParams.get("folder");
+  
+          if (!folderId) {
+              // Already at library root, go home
+              window.location.href = "{% url 'index' %}";
+              return;
+          }
+  
+          // Use a data attribute or hidden field to map folder_id -> parent_id
+          // For simplicity, we assume you render a "parent_id" in the template
+          const parentId = backBtn.dataset.parentId;
+  
+          if (parentId) {
+              window.location.href = "/library/{{ library.name }}?folder=" + parentId;
+          } else {
+              // If no parent, go back to library root
+              window.location.href = "/library/{{ library.name }}";
+          }
+      });
+  });
+
 </script>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>

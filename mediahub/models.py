@@ -17,6 +17,19 @@ class Library(models.Model):
     def __str__(self):
         return self.name
 
+class FolderItem(models.Model):
+    library = models.ForeignKey(Library, on_delete=models.CASCADE, related_name="folders")
+    parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="subfolders")
+    name = models.CharField(max_length=255)
+    path = models.CharField(max_length=1024)  # absolute path on disk
+    poster = models.CharField(max_length=1024, blank=True, null=True)  # first image path
+
+    @property
+    def display_label(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
 
 class MediaItem(models.Model):
     library = models.ForeignKey(Library, on_delete=models.CASCADE, related_name="items")
@@ -25,6 +38,12 @@ class MediaItem(models.Model):
     poster = models.TextField(null=True, blank=True)  # cached filename
     is_video = models.BooleanField(default=False)
     ext = models.CharField(max_length=10)
+    folder = models.ForeignKey(FolderItem, null=True, blank=True, on_delete=models.CASCADE, related_name="items")
 
+    @property
+    def display_label(self):
+        return self.title
+    
     def __str__(self):
         return self.title
+

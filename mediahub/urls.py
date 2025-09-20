@@ -10,5 +10,5 @@ urlpatterns = [
     path("media/player/", views.player_view, name="player_view"),
     path("media/image/", views.image_viewer, name="image_viewer"),
     path("show_hidden/", views.show_hidden, name="show_hidden"),
-    path("hide_hidden/", views.hide_hidden, name="hide_hidden"),
+    path("hide_hidden/", views.hide_hidden, name="hbide_hidden"),
 ]

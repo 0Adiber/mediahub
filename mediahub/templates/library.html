@@ -9,23 +9,64 @@
   <link rel="stylesheet" href="{% static 'mediahub.css' %}">
 </head>
 <body>
-<header>
-  <h1>{{ library.name }}</h1>
-  <a href="/">Home</a> |
-  <a href="/refresh/">Refresh</a>
-</header>
+
+  <nav class="navbar navbar-dark bg-dark sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand mb-0 h1" href="{% url 'index' %}">MediaHub</span></a>
+      {% if breadcrumb_path %}
+        <span class="navbar-text ms-3">
+          <!-- Back button -->
+          <button id="back-btn" class="btn btn-outline-light btn-sm me-2" {% if parent_id %} data-parent-id="{{ parent_id }}"{% endif %}>← Back</button>
+          {{ breadcrumb_path }}
+        </span>
+      {% endif %}
+      <div class="d-flex ms-auto">
+        <a class="btn btn-outline-light btn-sm me-2" href="/refresh/">Refresh</a>
+      </div>
+    </div>
+  </nav>
+  
+
 <main>
   <div class="grid">
     {% for it in items %}
     <div class="tile">
       <a href="{{ it.viewer_url }}">
         <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-        <div class="tile-title">{{ it.title }}</div>
+        <div class="tile-title">{{ it.display_label }}</div>
       </a>
     </div>
     {% endfor %}
   </div>
+
 </main>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+      const backBtn = document.getElementById("back-btn");
+      backBtn.addEventListener("click", function() {
+          // Get current URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const folderId = urlParams.get("folder");
+  
+          if (!folderId) {
+              // Already at library root, go home
+              window.location.href = "{% url 'index' %}";
+              return;
+          }
+  
+          // Use a data attribute or hidden field to map folder_id -> parent_id
+          // For simplicity, we assume you render a "parent_id" in the template
+          const parentId = backBtn.dataset.parentId;
+  
+          if (parentId) {
+              window.location.href = "?folder=" + parentId;
+          } else {
+              // If no parent, go back to library root
+              window.location.href = "?";
+          }
+      });
+  });
+  </script>
 </body>
 </html>
