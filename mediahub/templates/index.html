@@ -1,7 +1,7 @@
 {% load static %}
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
   <title>MediaHub</title>
@@ -10,42 +10,36 @@
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark sticky-top">
-  <div class="container-fluid">
-    <span class="navbar-brand mb-0 h1">MediaHub</span>
-    <div class="d-flex">
-      <a class="btn btn-outline-light btn-sm me-2" href="/refresh/">Refresh</a>
-      {% if not show_hidden and pin_required %}
-      <form class="d-flex" action="/show_hidden/" method="post">
-        {% csrf_token %}
-        <input class="form-control form-control-sm me-1" type="password" name="code" maxlength="4" placeholder="PIN">
-        <button class="btn btn-warning btn-sm" type="submit">🔒</button>
-      </form>
-      {% elif show_hidden %}
-      <form action="/hide_hidden/" method="post">
-        {% csrf_token %}
-        <button class="btn btn-success btn-sm" type="submit">🔓</button>
-      </form>
-      {% endif %}
-    </div>
-  </div>
-</nav>
+{% include "_navbar.html" %}
 
-<div class="container mt-4">
+<div class="container mt-3 d-flex justify-content-center">
+  <div class="w-100" style="max-width: 700px; position: relative;">
+    <input
+      type="search"
+      id="search-input"
+      class="form-control"
+      placeholder="Search movies, pictures, folders..."
+      autocomplete="off"
+    />
+    <ul id="search-results" class="list-group position-absolute w-100 bg-dark" style="z-index: 1000;"></ul>
+  </div>
+</div>
+
+<div class="container mt-4" z-index="99">
   <div class="row g-3">
     {% for lib in libraries %}
       <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-        <div class="card h-100 shadow-sm bg-dark text-white">
+        <div class="lib-tile card h-100 shadow-sm text-white">
           <a href="/library/{{ lib.slug }}/">
             {% if lib.type == 'movies' %}
-              <img src="{% static 'images/movie-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
+              <img src="{% static 'images/movie-icon.svg' %}" class="card-img-top p-2" alt="{{ lib.name }}">
             {% elif lib.type == 'pictures' %}
-              <img src="{% static 'images/picture-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
+              <img src="{% static 'images/picture-icon.svg' %}" class="card-img-top p-2" alt="{{ lib.name }}">
             {% else %}
               <img src="{% static 'images/folder-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
             {% endif %}
           </a>
-          <div class="card-body p-2 text-center">
+          <div class="card-body p-2 text-center d-flex" style="align-items: end; justify-content: center;">
             <p class="card-title small mb-0 text-truncate">{{ lib.name }}</p>
           </div>
         </div>
@@ -55,5 +49,6 @@
 </div>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'mediahub.js' %}"></script>
 </body>
 </html>

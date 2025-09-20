@@ -11,4 +11,5 @@ urlpatterns = [
     path("media/image/", views.image_viewer, name="image_viewer"),
     path("show_hidden/", views.show_hidden, name="show_hidden"),
     path("hide_hidden/", views.hide_hidden, name="hbide_hidden"),
+    path("search/", views.search_view, name="search"),
 ]

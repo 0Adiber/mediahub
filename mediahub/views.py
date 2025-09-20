@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import StreamingHttpResponse, Http404, FileResponse
+from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
 from .models import Library, MediaItem, FolderItem
 from .scanner import scan_once_safe, load_config
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
+from django.db.models import Q
 from PIL import Image
 import threading
 
@@ -55,14 +56,14 @@ def library_view(request, lib_slug):
         for it in items:
             if isinstance(it, FolderItem):
                 it.viewer_url = f"?folder={it.id}"  # drill-down
-                it.poster_url = f"/media/preview/?path={it.poster}" if it.poster else "/static/mediahub-placeholder.png"
+                it.poster_url = f"/media/preview/?path={it.poster}" if it.poster else "/static/images/mediahub-placeholder.jpg"
             else:  # MediaItem
                 if lib.hidden:
                     it.poster_url = f"/media/preview/?path={it.file_path}"
                 elif it.poster:
                     it.poster_url = "/static_cache/posters/" + it.poster
                 else:
-                    it.poster_url = "/static/mediahub-placeholder.png"
+                    it.poster_url = "/static/images/mediahub-placeholder.jpg"
 
                 ext = os.path.splitext(it.file_path)[1].lower()
                 if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
@@ -79,7 +80,7 @@ def library_view(request, lib_slug):
             elif it.poster:
                 it.poster_url = "/static_cache/posters/" + it.poster
             else:
-                it.poster_url = "/static/mediahub-placeholder.png"
+                it.poster_url = "/static/images/mediahub-placeholder.jpg"
 
             ext = os.path.splitext(it.file_path)[1].lower()
             if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
@@ -235,3 +236,50 @@ def image_viewer(request):
         "prev_item": prev_item
     })
 
+
+def search_view(request):
+    query = request.GET.get("q", "").strip()
+    show_hidden = request.session.get("show_hidden", False)
+    results = []
+
+    if query:
+        # Search in movies / pictures / folders
+        media_qs = MediaItem.objects.filter(
+            Q(title__icontains=query)
+        )
+        folder_qs = FolderItem.objects.filter(
+            Q(name__icontains=query)
+        )
+
+        # If hidden is disabled, exclude hidden libraries
+        if not show_hidden:
+            media_qs = media_qs.exclude(library__hidden=True)
+            folder_qs = folder_qs.exclude(library__hidden=True)
+
+        # Limit top 5 results
+        media_qs = media_qs[:5]
+        folder_qs = folder_qs[:5]
+
+        # Combine results
+        for item in media_qs:
+            results.append({
+                "type": "media",
+                "title": item.title,
+                "id": item.id,
+                "lib_slug": item.library.slug,
+                "file_path": item.file_path,
+                "isvideo": item.is_video,
+                "folder": item.folder.path if item.folder else None
+            })
+        for folder in folder_qs:
+            results.append({
+                "type": "folder",
+                "title": folder.name,
+                "id": folder.id,
+                "lib_slug": folder.library.slug,
+            })
+
+        # Limit to 5 overall
+        results = results[:5]
+
+    return JsonResponse(results, safe=False)

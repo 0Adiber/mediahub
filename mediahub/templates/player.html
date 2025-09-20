@@ -10,21 +10,7 @@
 </head>
 <body>
 
-  <nav class="navbar navbar-dark bg-dark sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand mb-0 h1" href="{% url 'index' %}">MediaHub</span></a>
-      {% if breadcrumb_path %}
-        <span class="navbar-text ms-3">
-          <!-- Back button -->
-          <button id="back-btn" class="btn btn-outline-light btn-sm me-2">← Back</button>
-          {{ breadcrumb_path }}
-        </span>
-      {% endif %}
-      <div class="d-flex ms-auto">
-        <a class="btn btn-outline-light btn-sm me-2" href="/refresh/">Refresh</a>
-      </div>
-    </div>
-  </nav>
+  {% include "_navbar.html" %}
 
 <main>
   <video controls autoplay style="width:100%; max-height:90vh;">
