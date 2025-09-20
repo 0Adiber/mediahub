@@ -236,6 +236,23 @@ def image_viewer(request):
         "prev_item": prev_item
     })
 
+def match_score(name, query):
+    """
+    Higher score if query matches more of the start of `name`.
+    Full prefix match gives highest score.
+    """
+    name_lower = name.lower()
+    query_lower = query.lower()
+    
+    if name_lower.startswith(query_lower):
+        # exact prefix match: longer query → higher score
+        return len(query_lower) / len(name_lower)
+    elif query_lower in name_lower:
+        # partial match inside string: smaller score
+        return 0.5 * len(query_lower) / len(name_lower)
+    else:
+        return 0
+
 
 def search_view(request):
     query = request.GET.get("q", "").strip()
@@ -256,30 +273,34 @@ def search_view(request):
             media_qs = media_qs.exclude(library__hidden=True)
             folder_qs = folder_qs.exclude(library__hidden=True)
 
-        # Limit top 5 results
-        media_qs = media_qs[:5]
-        folder_qs = folder_qs[:5]
+        results = [(obj, match_score(getattr(obj, 'title', getattr(obj, 'name', '')), query)) for obj in list(media_qs) + list(folder_qs)]
 
-        # Combine results
-        for item in media_qs:
-            results.append({
-                "type": "media",
-                "title": item.title,
-                "id": item.id,
-                "lib_slug": item.library.slug,
-                "file_path": item.file_path,
-                "isvideo": item.is_video,
-                "folder": item.folder.path if item.folder else None
-            })
-        for folder in folder_qs:
-            results.append({
-                "type": "folder",
-                "title": folder.name,
-                "id": folder.id,
-                "lib_slug": folder.library.slug,
-            })
+        results.sort(key=lambda x: x[1], reverse=True)
 
         # Limit to 5 overall
-        results = results[:5]
+        results = [obj for obj, _ in results][:5]
 
-    return JsonResponse(results, safe=False)
+        final_results = []
+        # Combine results
+        for item in results:
+            print(item)
+            if hasattr(item, 'ext'):
+                final_results.append({
+                    "type": "media",
+                    "title": item.title,
+                    "id": item.id,
+                    "lib_slug": item.library.slug,
+                    "file_path": item.file_path,
+                    "isvideo": item.is_video,
+                    "folder": item.folder.path if item.folder else None
+                })
+            else:
+                final_results.append({
+                    "type": "folder",
+                    "title": item.name,
+                    "id": item.id,
+                    "lib_slug": item.library.slug
+                })
+
+
+    return JsonResponse(final_results, safe=False)
