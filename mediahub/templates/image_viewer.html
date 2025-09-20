@@ -13,10 +13,14 @@
           background:black; 
           color:white; 
           overflow:hidden; 
+          height:100vh;          /* full viewport height */
+      }
+
+      main {
           display:flex; 
           justify-content:center; /* horizontal centering */
           align-items:center;    /* vertical centering */
-          height:100vh;          /* full viewport height */
+          height: 100%;
       }
       
       img { 
@@ -37,15 +41,6 @@
       
       .left { left:5px; }
       .right { right:5px; }
-      
-      header { 
-          position:fixed; 
-          top:10px; 
-          left:10px; 
-          z-index:101; 
-          display:flex; 
-          gap:10px; 
-      }
       
       button { font-size:1rem; padding:5px; }
       </style>

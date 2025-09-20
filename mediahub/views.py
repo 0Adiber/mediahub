@@ -174,9 +174,12 @@ def preview_media(request):
 def player_view(request):
     path = request.GET.get("path")
     lib_slug = request.GET.get("lib")
+
+    vid = MediaItem.objects.get(file_path=path)
+
     if not path or not os.path.exists(path):
         raise Http404("File not found")
-    return render(request, "player.html", {"file_path": path, "lib_slug": lib_slug})
+    return render(request, "player.html", {"file_path": path, "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
 
 def show_hidden(request):
     if request.method == "POST":
@@ -211,8 +214,6 @@ def image_viewer(request):
 
     parent_id = folder.id if folder else None
 
-    print(parent_id)
-
     current_path = []
     
     while folder:
@@ -220,6 +221,7 @@ def image_viewer(request):
         folder = folder.parent
 
     current_path.insert(0, lib.name)
+    current_path.append(str(index))
     breadcrumb_path = "/" + "/".join(current_path)
 
     return render(request, "image_viewer.html", {
