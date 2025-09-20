@@ -67,11 +67,11 @@
   <img id="current-img" src="/media/stream/?path={{ current.file_path }}" alt="{{ current.title }}">
 </main>
 
-{% if prev_index is not None %}
-<a class="nav left" id="prev-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&index={{ prev_index }}">⟨</a>
+{% if prev_item is not None %}
+<a class="nav left" id="prev-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&id={{ prev_item.id }}">⟨</a>
 {% endif %}
-{% if next_index is not None %}
-<a class="nav right" id="next-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&index={{ next_index }}">⟩</a>
+{% if next_item is not None %}
+<a class="nav right" id="next-link" href="/media/image/?lib={{ library.slug }}&folder={{ folder }}&id={{ next_item.id }}">⟩</a>
 {% endif %}
 
 <script>

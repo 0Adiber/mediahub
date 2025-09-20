@@ -10,9 +10,10 @@ header { padding: 12px 18px; background: #0d0d0d; display:flex; justify-content:
 /* Tile images */
 .thumb {
   width: 100%;
-  height: auto;
+  height: 300px;
   border-radius: 6px;
   display: block;
+  object-fit: cover;
 }
 
 /* Tile text */

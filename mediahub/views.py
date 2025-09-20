@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse
 from .models import Library, MediaItem, FolderItem
-from .scanner import scan_once, load_config
+from .scanner import scan_once_safe, load_config
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
 from PIL import Image
-
+import threading
 
 def index(request):
     cfg = load_config()
@@ -52,7 +52,7 @@ def library_view(request, lib_slug):
         items = list(subfolders) + list(pictures)
 
         # Build URLs for each item
-        for idx, it in enumerate(items):
+        for it in items:
             if isinstance(it, FolderItem):
                 it.viewer_url = f"?folder={it.id}"  # drill-down
                 it.poster_url = f"/media/preview/?path={it.poster}" if it.poster else "/static/mediahub-placeholder.png"
@@ -66,14 +66,14 @@ def library_view(request, lib_slug):
 
                 ext = os.path.splitext(it.file_path)[1].lower()
                 if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
-                    it.viewer_url = f"/media/image/?lib={lib.slug}&index={idx}&folder={folder.path if folder else None}"
+                    it.viewer_url = f"/media/image/?lib={lib.slug}&id={it.id}&folder={folder.path if folder else None}"
                 else:
                     it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}&folder={folder.path if folder else None}"
 
     else:
         # Movies / other types remain as before
         items = lib.items.all().order_by("title")
-        for idx, it in enumerate(items):
+        for it in items:
             if lib.hidden:
                 it.poster_url = f"/media/preview/?path={it.file_path}"
             elif it.poster:
@@ -83,7 +83,7 @@ def library_view(request, lib_slug):
 
             ext = os.path.splitext(it.file_path)[1].lower()
             if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
-                it.viewer_url = f"/media/image/?lib={lib.slug}&index={idx}"
+                it.viewer_url = f"/media/image/?lib={lib.slug}&id={it.id}"
             else:
                 it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}"
 
@@ -100,7 +100,7 @@ def library_view(request, lib_slug):
     return render(request, "library.html", {"library": lib, "items": items, "breadcrumb_path": breadcrumb_path, "parent_id": parent_id})
 
 def refresh_view(request):
-    scan_once()
+    threading.Thread(target=scan_once_safe, daemon=True).start()
     return redirect("/")
 
 def stream_media(request):
@@ -196,21 +196,22 @@ def hide_hidden(request):
 
 def image_viewer(request):
     lib_slug = request.GET.get("lib")
-    index = int(request.GET.get("index", 0))
+    id = int(request.GET.get("id", 0))
     folder_path = request.GET.get("folder")
 
     lib = get_object_or_404(Library, slug=lib_slug)
-    folder = FolderItem.objects.get(path=folder_path)
-    items = list(lib.items.filter(
-        file_path__iregex=r"\.(jpg|jpeg|png|gif|webp)$"
-    ).order_by("title"))
+    folder = FolderItem.objects.filter(path=folder_path).first()
 
-    if index < 0 or index >= len(items):
-        raise Http404("Image not found")
+    if folder:
+        items = list(folder.items.all().order_by("title"))
+    else:
+        items = lib.items.filter(folder__isnull=True).order_by("title")
 
-    current = items[index]
-    prev_index = index - 1 if index > 0 else None
-    next_index = index + 1 if index < len(items) - 1 else None
+    current_index = next((i for i, it in enumerate(items) if it.id == id), None)
+    prev_item = items[current_index - 1] if current_index > 0 else None
+    next_item = items[current_index + 1] if current_index < len(items) - 1 else None
+
+    current = MediaItem.objects.get(id=id)
 
     parent_id = folder.id if folder else None
 
@@ -221,16 +222,16 @@ def image_viewer(request):
         folder = folder.parent
 
     current_path.insert(0, lib.name)
-    current_path.append(str(index))
+    current_path.append(str(current.title))
     breadcrumb_path = "/" + "/".join(current_path)
 
     return render(request, "image_viewer.html", {
         "library": lib,
         "current": current,
-        "prev_index": prev_index,
-        "next_index": next_index,
         "parent_id": parent_id,
         "breadcrumb_path": breadcrumb_path,
-        "folder": folder_path
+        "folder": folder_path,
+        "next_item": next_item,
+        "prev_item": prev_item
     })
 

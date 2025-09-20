@@ -6,6 +6,9 @@ from pathlib import Path
 from django.conf import settings
 from .models import Library, MediaItem, FolderItem
 from django.utils.text import slugify
+import threading
+
+_scan_lock = threading.Lock()
 
 ALLOWED_VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov"}
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
@@ -41,7 +44,7 @@ def omdb_fetch(title):
 def get_first_image(folder_path):
     for root, dirs, files in os.walk(folder_path):
         for f in files:
-            if f.lower().endswith((".jpg", ".jpeg", ".png")):
+            if f.lower().endswith((".jpg", ".jpeg", ".png", "webp")):
                 return os.path.join(root, f)
     return None
 
@@ -76,26 +79,30 @@ def scan_folder(library, path, parent_folder=None):
                 # Recursively scan subfolder
                 scan_folder(library, full_path, parent_folder=folder_item)
             elif entry.is_file():
-                ext = os.path.splitext(entry.name)[-1].lower()
-                if ext not in ALLOWED_VIDEO_EXTS | ALLOWED_IMAGE_EXTS:
-                    continue
 
-                is_video = ext in ALLOWED_VIDEO_EXTS
+                if not MediaItem.objects.filter(file_path = full_path).exists():
+                    ext = os.path.splitext(entry.name)[-1].lower()
+                    if ext not in ALLOWED_VIDEO_EXTS | ALLOWED_IMAGE_EXTS:
+                        continue
 
-                media_item, _ = MediaItem.objects.update_or_create(
-                    file_path=full_path,
-                    library=library,
-                    folder=folder_item,
-                    defaults={
-                        "title": os.path.splitext(entry.name)[0],
-                        "poster": None,
-                        "is_video": is_video,
-                        "ext": ext
-                    }
-                )
+                    is_video = ext in ALLOWED_VIDEO_EXTS
+
+                    media_item, _ = MediaItem.objects.update_or_create(
+                        file_path=full_path,
+                        library=library,
+                        folder=folder_item,
+                        defaults={
+                            "title": os.path.splitext(entry.name)[0],
+                            "poster": None,
+                            "is_video": is_video,
+                            "ext": ext
+                        }
+                    )
+                else:
+                    media_item = MediaItem.objects.get(file_path = full_path)
 
                 # fetch OMDB poster if needed
-                if library.sync and is_video:
+                if library.sync and media_item.is_video and media_item.poster == None:
                     omdb = omdb_fetch(media_item.title)
                     if omdb:
                         media_item.title = omdb["title"]
@@ -126,6 +133,16 @@ def scan_once():
             print(f"Removing library {db_lib.name} (not in config)")
             db_lib.delete()
 
+    for item in MediaItem.objects.all():
+        if not os.path.exists(item.file_path):
+            print(f"File removed, deleting {item.file_path}")
+            item.delete()
+        
+    for folder in FolderItem.objects.all():
+        if not os.path.exists(folder.path):
+            print(f"Folder removed, deleting {folder.path}")
+            folder.delete()
+
     for lib in libraries:
         lib_slug = slugify(lib["name"])
         library, _ = Library.objects.update_or_create(
@@ -140,3 +157,11 @@ def scan_once():
         )
 
         scan_folder(library, library.path, parent_folder=None)
+
+def scan_once_safe():
+    if _scan_lock.locked():
+        print("Scan already in progress, skipping...")
+        return
+
+    with _scan_lock:
+        scan_once()
