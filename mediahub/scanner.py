@@ -92,7 +92,7 @@ def scan_folder(library, path, parent_folder=None):
                         library=library,
                         folder=folder_item,
                         defaults={
-                            "title": os.path.splitext(entry.name)[0].replace("-", " "),
+                            "title": os.path.splitext(entry.name)[0].replace("-", " ").replace("_", " "),
                             "poster": None,
                             "is_video": is_video,
                             "ext": ext
