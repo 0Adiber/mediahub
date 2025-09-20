@@ -1,55 +1,97 @@
+{% load static %}
+
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>{{ current.title }}</title>
-  <link rel="stylesheet" href="/static/mediahub.css">
-  <style>
-    body { margin:0; background:black; color:white; text-align:center; }
-    img { max-width:100vw; max-height:100vh; }
-    .nav { position:fixed; top:50%; transform:translateY(-50%); font-size:3rem; cursor:pointer; user-select:none; }
-    .left { left:10px; }
-    .right { right:10px; }
-    header { position:fixed; top:10px; left:10px; }
-    button { font-size:1rem; padding:5px; }
-  </style>
-</head>
+  <head>
+    <meta charset="utf-8">
+    <title>{{ current.title }}</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'mediahub.css' %}">
+    <style>
+      body { 
+          margin:0; 
+          background:black; 
+          color:white; 
+          overflow:hidden; 
+          display:flex; 
+          justify-content:center; /* horizontal centering */
+          align-items:center;    /* vertical centering */
+          height:100vh;          /* full viewport height */
+      }
+      
+      img { 
+          max-width:100vw; 
+          max-height:100vh; 
+          display:block; 
+      }
+      
+      .nav { 
+          position:fixed; 
+          top:50%; 
+          transform:translateY(-50%); 
+          font-size:3rem; 
+          cursor:pointer; 
+          user-select:none; 
+          z-index:100; 
+      }
+      
+      .left { left:5px; }
+      .right { right:5px; }
+      
+      header { 
+          position:fixed; 
+          top:10px; 
+          left:10px; 
+          z-index:101; 
+          display:flex; 
+          gap:10px; 
+      }
+      
+      button { font-size:1rem; padding:5px; }
+      </style>
+  </head>
 <body>
-  <header>
-    <a href="/library/{{ library.slug }}/" style="color:white;">⬅ Back</a>
-    <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
-  </header>
 
-  <main>
-    <img src="/media/stream/?path={{ current.file_path }}" alt="{{ current.title }}">
-  </main>
+<header>
+  <a href="/library/{{ library.slug }}/" style="color:white;">⬅ Back</a>
+</header>
 
-  {% if prev_index is not None %}
-    <a class="nav left" href="/media/image/?lib={{ library.slug }}&index={{ prev_index }}">⟨</a>
-  {% endif %}
-  {% if next_index is not None %}
-    <a class="nav right" href="/media/image/?lib={{ library.slug }}&index={{ next_index }}">⟩</a>
-  {% endif %}
+<main>
+  <img id="current-img" src="/media/stream/?path={{ current.file_path }}" alt="{{ current.title }}">
+</main>
 
-  <script>
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        document.exitFullscreen();
-      }
-    }
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft" && document.querySelector(".left")) {
-        document.querySelector(".left").click();
-      }
-      if (e.key === "ArrowRight" && document.querySelector(".right")) {
-        document.querySelector(".right").click();
-      }
-      if (e.key === "Escape") {
-        window.location.href = "/library/{{ library.slug }}/";
-      }
-    });
-  </script>
+{% if prev_index is not None %}
+<a class="nav left" id="prev-link" href="/media/image/?lib={{ library.slug }}&index={{ prev_index }}">⟨</a>
+{% endif %}
+{% if next_index is not None %}
+<a class="nav right" id="next-link" href="/media/image/?lib={{ library.slug }}&index={{ next_index }}">⟩</a>
+{% endif %}
+
+<script>
+
+// Keyboard nav
+document.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" && document.querySelector(".left")) document.querySelector(".left").click();
+    if (e.key === "ArrowRight" && document.querySelector(".right")) document.querySelector(".right").click();
+    if (e.key === "Escape") window.location.href = "/library/{{ library.slug }}/";
+});
+
+// Touch swipe support
+let touchStartX = null;
+const threshold = 50; // px to detect swipe
+
+document.addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; });
+document.addEventListener("touchend", e => {
+    if (touchStartX === null) return;
+    let touchEndX = e.changedTouches[0].screenX;
+    let diff = touchEndX - touchStartX;
+    if (diff > threshold && document.querySelector(".left")) document.querySelector(".left").click(); // swipe right
+    if (diff < -threshold && document.querySelector(".right")) document.querySelector(".right").click(); // swipe left
+    touchStartX = null;
+});
+</script>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
 </body>
 </html>

@@ -7,6 +7,13 @@ class Library(models.Model):
     hidden = models.BooleanField(default=False)
     sync = models.BooleanField(default=False)
 
+    LIBRARY_TYPES = [
+        ('movies', 'Movies'),
+        ('pictures', 'Pictures'),
+        ('other', 'Other'),
+    ]
+    type = models.CharField(max_length=20, choices=LIBRARY_TYPES, default='other')
+
     def __str__(self):
         return self.name
 

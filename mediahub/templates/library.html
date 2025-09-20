@@ -1,9 +1,12 @@
+{% load static %}
+
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>{{ library.name }}</title>
-  <link rel="stylesheet" href="/static/mediahub.css">
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'mediahub.css' %}">
 </head>
 <body>
 <header>
@@ -23,5 +26,6 @@
     {% endfor %}
   </div>
 </main>
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>

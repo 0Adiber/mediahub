@@ -1,41 +1,59 @@
+{% load static %}
+
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>MediaHub</title>
-  <link rel="stylesheet" href="/static/mediahub.css">
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'mediahub.css' %}">
 </head>
 <body>
-  <header>
-    <h1>MediaHub</h1>
-    <a href="/refresh/">Refresh from drive</a>
-  
-    {% if not show_hidden and pin_required %}
-      <form action="/show_hidden/" method="post" style="display:inline;">
+
+<nav class="navbar navbar-dark bg-dark sticky-top">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">MediaHub</span>
+    <div class="d-flex">
+      <a class="btn btn-outline-light btn-sm me-2" href="/refresh/">Refresh</a>
+      {% if not show_hidden and pin_required %}
+      <form class="d-flex" action="/show_hidden/" method="post">
         {% csrf_token %}
-        <input type="password" name="code" maxlength="4" placeholder="PIN">
-        <button type="submit">🔓</button>
+        <input class="form-control form-control-sm me-1" type="password" name="code" maxlength="4" placeholder="PIN">
+        <button class="btn btn-warning btn-sm" type="submit">🔒</button>
       </form>
-    {% elif show_hidden %}
-      <form action="/hide_hidden/" method="post" style="display:inline;">
+      {% elif show_hidden %}
+      <form action="/hide_hidden/" method="post">
         {% csrf_token %}
-        <button type="submit">🔒</button>
+        <button class="btn btn-success btn-sm" type="submit">🔓</button>
       </form>
-    {% endif %}
-  </header> 
-  <main>
-    <div class="grid">
-      {% for lib in libraries %}
-      <a class="tile" href="/library/{{ lib.slug }}/">
-        <div class="tile-inner">
-          <div class="tile-title">{{ lib.name }}</div>
-          <div class="tile-count">{{ lib.items.count }} items</div>
-        </div>
-      </a>
-      {% empty %}
-      <p>No libraries configured. Add them to config.yaml and click Refresh.</p>
-      {% endfor %}
+      {% endif %}
     </div>
-  </main>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="row g-3">
+    {% for lib in libraries %}
+      <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <div class="card h-100 shadow-sm bg-dark text-white">
+          <a href="/library/{{ lib.slug }}/">
+            {% if lib.type == 'movies' %}
+              <img src="{% static 'images/movie-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
+            {% elif lib.type == 'pictures' %}
+              <img src="{% static 'images/picture-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
+            {% else %}
+              <img src="{% static 'images/folder-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
+            {% endif %}
+          </a>
+          <div class="card-body p-2 text-center">
+            <p class="card-title small mb-0 text-truncate">{{ lib.name }}</p>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>
