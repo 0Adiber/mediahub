@@ -1,0 +1,14 @@
+libraries:
+  - name: Movies
+    type: movies
+    path: /home/media/movies
+    hidden: false
+    sync: true
+
+  - name: Pictures
+    type: pictures
+    path: /home/media/pictures
+    hidden: true
+    sync: false
+
+hidden_pin: "1234"

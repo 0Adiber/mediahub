@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MediaHub</title>
+  <link rel="stylesheet" href="/static/mediahub.css">
+</head>
+<body>
+  <header>
+    <h1>MediaHub</h1>
+    <a href="/refresh/">Refresh from drive</a>
+  
+    {% if not show_hidden and pin_required %}
+      <form action="/show_hidden/" method="post" style="display:inline;">
+        {% csrf_token %}
+        <input type="password" name="code" maxlength="4" placeholder="PIN">
+        <button type="submit">🔓</button>
+      </form>
+    {% elif show_hidden %}
+      <form action="/hide_hidden/" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">🔒</button>
+      </form>
+    {% endif %}
+  </header> 
+  <main>
+    <div class="grid">
+      {% for lib in libraries %}
+      <a class="tile" href="/library/{{ lib.slug }}/">
+        <div class="tile-inner">
+          <div class="tile-title">{{ lib.name }}</div>
+          <div class="tile-count">{{ lib.items.count }} items</div>
+        </div>
+      </a>
+      {% empty %}
+      <p>No libraries configured. Add them to config.yaml and click Refresh.</p>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>
