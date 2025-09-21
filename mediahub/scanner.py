@@ -7,7 +7,7 @@ from django.conf import settings
 from .models import Library, MediaItem, FolderItem
 from django.utils.text import slugify
 import threading
-from urllib.parse import unquote
+from urllib.parse import quote
 from PIL import Image
 import subprocess
 
@@ -43,6 +43,36 @@ def omdb_fetch(title):
     except Exception:
         return None
     return None
+
+def tmdb_fetch(title):
+    api_key = settings.TMDB_API_KEY
+    if not api_key:
+        return None
+    
+    try:
+        r = requests.get(
+            'https://api.themoviedb.org/3/search/movie',
+            params={
+                'query': quote(title),
+                'include_adult': True, 
+                'language': 'en', 
+                'page': 1, 
+                'api_key': api_key
+                },
+            headers={'accept': 'application/json'},
+            timeout=10
+        )
+        data = r.json()
+        if data["total_results"] < 1:
+            return None
+        data = data["results"][0]
+        otitle = data.get('original_title', title)
+        poster_path = data.get('poster_path')
+        poster_url = "https://image.tmdb.org/t/p/w500" + poster_path if poster_path else None
+        
+        return {"title": otitle, "poster_url": poster_url}
+    except Exception:
+        return None
 
 def get_first_image(folder_path):
     for root, dirs, files in os.walk(folder_path):
@@ -117,7 +147,8 @@ def scan_folder(library, path, parent_folder=None):
 
                 # fetch OMDB poster if needed
                 if library.sync and media_item.is_video and media_item.poster == None:
-                    omdb = omdb_fetch(media_item.title)
+                    omdb = tmdb_fetch(media_item.title)
+                    print(omdb, flush=True)
                     if omdb:
                         media_item.title = omdb["title"]
                         if omdb.get("poster_url") and omdb["poster_url"] != "N/A":

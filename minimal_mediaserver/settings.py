@@ -131,3 +131,4 @@ CACHE_DIR.mkdir(exist_ok=True)
 POSTER_DIR.mkdir(parents=True, exist_ok=True)
 
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "")
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
