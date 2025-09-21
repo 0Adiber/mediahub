@@ -7,6 +7,7 @@ from django.conf import settings
 from .models import Library, MediaItem, FolderItem
 from django.utils.text import slugify
 import threading
+from urllib.parse import unquote
 
 _scan_lock = threading.Lock()
 

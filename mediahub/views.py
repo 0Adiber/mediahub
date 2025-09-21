@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db.models import Q
 from PIL import Image
 import threading
+from urllib.parse import quote, unquote
 
 def index(request):
     cfg = load_config()
@@ -59,7 +60,7 @@ def library_view(request, lib_slug):
                 it.poster_url = f"/media/preview/?path={it.poster}" if it.poster else "/static/images/mediahub-placeholder.jpg"
             else:  # MediaItem
                 if lib.hidden:
-                    it.poster_url = f"/media/preview/?path={it.file_path}"
+                    it.poster_url = f"/media/preview/?path={quote(it.file_path)}"
                 elif it.poster:
                     it.poster_url = "/static_cache/posters/" + it.poster
                 else:
@@ -69,14 +70,14 @@ def library_view(request, lib_slug):
                 if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
                     it.viewer_url = f"/media/image/?lib={lib.slug}&id={it.id}&folder={folder.path if folder else None}"
                 else:
-                    it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}&folder={folder.path if folder else None}"
+                    it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={lib.slug}&folder={folder.path if folder else None}"
 
     else:
         # Movies / other types remain as before
         items = lib.items.all().order_by("title")
         for it in items:
             if lib.hidden:
-                it.poster_url = f"/media/preview/?path={it.file_path}"
+                it.poster_url = f"/media/preview/?path={quote(it.file_path)}"
             elif it.poster:
                 it.poster_url = "/static_cache/posters/" + it.poster
             else:
@@ -86,7 +87,7 @@ def library_view(request, lib_slug):
             if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
                 it.viewer_url = f"/media/image/?lib={lib.slug}&id={it.id}"
             else:
-                it.viewer_url = f"/media/player/?path={it.file_path}&lib={lib.slug}"
+                it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={lib.slug}"
 
     for it in items:
         if isinstance(it, FolderItem):
@@ -105,7 +106,8 @@ def refresh_view(request):
     return redirect("/")
 
 def stream_media(request):
-    path = request.GET.get("path")
+    path = unquote(request.GET.get("path"))
+
     if not path or not os.path.exists(path):
         raise Http404("File not found")
 
@@ -151,7 +153,7 @@ def stream_media(request):
     return resp
 
 def preview_media(request):
-    path = request.GET.get("path")
+    path = unquote(request.GET.get("path"))
     if not path or not os.path.exists(path):
         raise Http404("File not found")
 
@@ -173,14 +175,14 @@ def preview_media(request):
     return FileResponse(open(thumb_path, "rb"), content_type="image/jpeg")
 
 def player_view(request):
-    path = request.GET.get("path")
+    path = unquote(request.GET.get("path"))
     lib_slug = request.GET.get("lib")
 
     vid = MediaItem.objects.get(file_path=path)
 
     if not path or not os.path.exists(path):
         raise Http404("File not found")
-    return render(request, "player.html", {"file_path": path, "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
+    return render(request, "player.html", {"file_path": quote(path), "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
 
 def show_hidden(request):
     if request.method == "POST":
