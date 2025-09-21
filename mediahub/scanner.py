@@ -8,6 +8,7 @@ from .models import Library, MediaItem, FolderItem
 from django.utils.text import slugify
 import threading
 from urllib.parse import unquote
+from PIL import Image
 
 _scan_lock = threading.Lock()
 
@@ -49,6 +50,14 @@ def get_first_image(folder_path):
                 return os.path.join(root, f)
     return None
 
+
+def get_image_size(path):
+    try:
+        with Image.open(path) as img:
+            return img.width, img.height
+    except Exception:
+        return None, None
+
 def scan_folder(library, path, parent_folder=None):
     """
     Recursively scan a folder, create FolderItem and MediaItem objects.
@@ -87,11 +96,14 @@ def scan_folder(library, path, parent_folder=None):
                         continue
 
                     is_video = ext in ALLOWED_VIDEO_EXTS
+                    width, height = get_image_size(full_path)
 
                     media_item, _ = MediaItem.objects.update_or_create(
                         file_path=full_path,
                         library=library,
                         folder=folder_item,
+                        width=width,
+                        height=height,
                         defaults={
                             "title": os.path.splitext(entry.name)[0].replace("-", " ").replace("_", " "),
                             "poster": None,

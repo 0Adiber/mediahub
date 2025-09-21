@@ -39,6 +39,8 @@ class MediaItem(models.Model):
     is_video = models.BooleanField(default=False)
     ext = models.CharField(max_length=10)
     folder = models.ForeignKey(FolderItem, null=True, blank=True, on_delete=models.CASCADE, related_name="items")
+    width = models.IntegerField(null=True, blank=True)
+    height = models.IntegerField(null=True, blank=True)
 
     @property
     def display_label(self):

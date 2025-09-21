@@ -7,21 +7,46 @@
   <title>{{ library.name }}</title>
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'mediahub.css' %}">
+
+  <link rel="stylesheet" href="{% static 'css/photoswipe.css' %}">
 </head>
 <body>
+  <script type="module">
+    import PhotoSwipeLightbox from "{% static 'js/photoswipe-lightbox.esm.min.js' %}";
+  
+    const lightbox = new PhotoSwipeLightbox({
+      gallery: '#gallery',
+      children: '.lightbox-item',
+      pswpModule: () => import("{% static 'js/photoswipe.esm.min.js' %}")
+    });
+    lightbox.init();
+  </script>
+
 
   {% include "_navbar.html" %}
   
 <main>
-  <div class="grid">
+
+  <div class="grid pswp-gallery pswp-gallery--single-column" id="gallery">
+
     {% for it in items %}
-    <div class="tile">
-      <a href="{{ it.viewer_url }}">
-        <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-        <div class="tile-title">{{ it.display_label }}</div>
-      </a>
-    </div>
+      {% if it.item_type == 'media' and it.is_video == False %}
+        <div class="tile">
+          <a href="{{ it.poster_url }}" data-pswp-width="{{ it.width }}" data-pswp-height="{{ it.height }}" class="lightbox-item">
+            <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
+            <div class="tile-title">{{ it.display_label }}</div>
+          </a>
+        </div>
+      {% else %}
+        <div class="tile">
+          <a href="{{ it.viewer_url }}">
+            <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
+            <div class="tile-title">{{ it.display_label }}</div>
+          </a>
+        </div>
+      {% endif %}
     {% endfor %}
+
   </div>
 
 </main>
