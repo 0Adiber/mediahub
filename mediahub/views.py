@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
 from .models import Library, MediaItem, FolderItem
-from .scanner import scan_once_safe, load_config
+from .scanner import scan_once_safe, load_config, capture_frame
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
@@ -9,6 +9,7 @@ from django.db.models import Q
 from PIL import Image
 import threading
 from urllib.parse import quote, unquote
+import json
 
 def index(request):
     cfg = load_config()
@@ -182,7 +183,7 @@ def player_view(request):
 
     if not path or not os.path.exists(path):
         raise Http404("File not found")
-    return render(request, "player.html", {"file_path": quote(path), "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
+    return render(request, "player.html", {"file_path": quote(path), "item_id": vid.id, "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
 
 def show_hidden(request):
     if request.method == "POST":
@@ -306,3 +307,28 @@ def search_view(request):
 
 
     return JsonResponse(final_results, safe=False)
+
+def set_poster(request, item_id):
+    try:
+        item = MediaItem.objects.get(id=item_id)
+        if item.library.sync or not item.is_video:
+            return JsonResponse({"success": False, "error": "Poster editing not allowed"})
+
+        data = json.loads(request.body)
+        seconds = int(data.get("time", 5))
+        
+        thumb_path = settings.CACHE_DIR / f"preview_{os.path.basename(item.file_path)}.jpg"
+
+        subprocess.run([
+            "ffmpeg", "-y",
+            "-ss", str(seconds),
+            "-i", item.file_path,
+            "-vframes", "1", "-q:v", "2",
+            str(thumb_path)
+        ], check=True)
+
+        return JsonResponse({"success": True})
+    except MediaItem.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Item not found"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

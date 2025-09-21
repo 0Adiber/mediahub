@@ -9,6 +9,7 @@ from django.utils.text import slugify
 import threading
 from urllib.parse import unquote
 from PIL import Image
+import subprocess
 
 _scan_lock = threading.Lock()
 
@@ -178,3 +179,11 @@ def scan_once_safe():
 
     with _scan_lock:
         scan_once()
+
+
+def capture_frame(video_path, output_path, time="00:00:05"):
+    """Capture a frame at 5 seconds (default)"""
+    subprocess.run([
+        "ffmpeg", "-y", "-ss", time, "-i", video_path,
+        "-vframes", "1", "-q:v", "2", str(output_path)
+    ], check=True)
