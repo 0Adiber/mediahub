@@ -70,3 +70,15 @@ input.addEventListener("focus", () => {
         runSearch(query);
     }
 });
+
+function showToast(message, isError = false) {
+    const toastEl = document.getElementById('feedbackToast');
+    const toastBody = document.getElementById('feedbackToastBody');
+
+    toastBody.textContent = message;
+    toastEl.classList.remove('text-bg-dark', 'text-bg-danger', 'text-bg-success');
+    toastEl.classList.add(isError ? 'text-bg-danger' : 'text-bg-success');
+
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}

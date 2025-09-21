@@ -49,3 +49,8 @@ class MediaItem(models.Model):
     def __str__(self):
         return self.title
 
+class PlaybackProgress(models.Model):
+    media_item = models.ForeignKey(MediaItem, on_delete=models.CASCADE)
+    position = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+

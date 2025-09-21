@@ -8,9 +8,9 @@ urlpatterns = [
     path("media/stream/", views.stream_media, name="stream_media"),
     path("media/preview/", views.preview_media, name="preview_media"),
     path("media/player/", views.player_view, name="player_view"),
-    path("media/image/", views.image_viewer, name="image_viewer"),
     path("show_hidden/", views.show_hidden, name="show_hidden"),
-    path("hide_hidden/", views.hide_hidden, name="hbide_hidden"),
+    path("hide_hidden/", views.hide_hidden, name="hide_hidden"),
     path("search/", views.search_view, name="search"),
     path("set_poster/<int:item_id>/", views.set_poster, name="set_poster"),
+    path("api/save_progress/<int:item_id>/", views.save_progress, name="save_progess"),
 ]

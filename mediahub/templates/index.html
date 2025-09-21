@@ -13,18 +13,7 @@
 
 {% include "_navbar.html" %}
 
-<div class="container mt-3 d-flex justify-content-center">
-  <div class="w-100" style="max-width: 700px; position: relative;">
-    <input
-      type="search"
-      id="search-input"
-      class="form-control"
-      placeholder="Search movies, pictures, folders..."
-      autocomplete="off"
-    />
-    <ul id="search-results" class="list-group position-absolute w-100 bg-dark" style="z-index: 1000;"></ul>
-  </div>
-</div>
+{% include "_search.html" %}
 
 <div class="container mt-4" z-index="99">
   <div class="row g-3">

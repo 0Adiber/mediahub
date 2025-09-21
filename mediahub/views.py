@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
-from .models import Library, MediaItem, FolderItem
+from .models import Library, MediaItem, FolderItem, PlaybackProgress
 from .scanner import scan_once_safe, load_config, capture_frame
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
@@ -180,10 +180,17 @@ def player_view(request):
     lib_slug = request.GET.get("lib")
 
     vid = MediaItem.objects.get(file_path=path)
+    progress = PlaybackProgress.objects.filter(media_item=vid.id).first()
 
     if not path or not os.path.exists(path):
         raise Http404("File not found")
-    return render(request, "player.html", {"file_path": quote(path), "item_id": vid.id, "lib_slug": lib_slug, "breadcrumb_path": "/" + vid.title })
+    return render(request, "player.html", {
+        "file_path": quote(path), 
+        "item_id": vid.id, 
+        "lib_slug": lib_slug, 
+        "breadcrumb_path": "/" + vid.title,
+        "progress": progress.position if progress else 0,
+    })
 
 def show_hidden(request):
     if request.method == "POST":
@@ -197,47 +204,6 @@ def hide_hidden(request):
     if request.method == "POST":
         request.session.pop("show_hidden", None)
     return redirect("/")
-
-def image_viewer(request):
-    lib_slug = request.GET.get("lib")
-    id = int(request.GET.get("id", 0))
-    folder_path = request.GET.get("folder")
-
-    lib = get_object_or_404(Library, slug=lib_slug)
-    folder = FolderItem.objects.filter(path=folder_path).first()
-
-    if folder:
-        items = list(folder.items.all().order_by("title"))
-    else:
-        items = lib.items.filter(folder__isnull=True).order_by("title")
-
-    current_index = next((i for i, it in enumerate(items) if it.id == id), None)
-    prev_item = items[current_index - 1] if current_index > 0 else None
-    next_item = items[current_index + 1] if current_index < len(items) - 1 else None
-
-    current = MediaItem.objects.get(id=id)
-
-    parent_id = folder.id if folder else None
-
-    current_path = []
-    
-    while folder:
-        current_path.insert(0, folder.name)
-        folder = folder.parent
-
-    current_path.insert(0, lib.name)
-    current_path.append(str(current.title))
-    breadcrumb_path = "/" + "/".join(current_path)
-
-    return render(request, "image_viewer.html", {
-        "library": lib,
-        "current": current,
-        "parent_id": parent_id,
-        "breadcrumb_path": breadcrumb_path,
-        "folder": folder_path,
-        "next_item": next_item,
-        "prev_item": prev_item
-    })
 
 def match_score(name, query):
     """
@@ -332,3 +298,14 @@ def set_poster(request, item_id):
         return JsonResponse({"success": False, "error": "Item not found"})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+    
+def save_progress(request, item_id):
+    data = json.loads(request.body)
+    time = int(data.get("time", 0))
+    item = MediaItem.objects.get(id=item_id)
+
+    progress, _ = PlaybackProgress.objects.update_or_create(
+        media_item=item,
+        defaults={"position": time}
+    )
+    return JsonResponse({"success": True})

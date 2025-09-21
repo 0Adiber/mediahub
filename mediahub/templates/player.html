@@ -5,39 +5,66 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="csrf-token" content="{{ csrf_token }}">
   <title>Video Player</title>
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'mediahub.css' %}">
+  <link rel="stylesheet" href="{% static 'css/video-js.css' %}">
 </head>
 <body>
 
   {% include "_navbar.html" %}
 
+  {% include "_toast.html" %}
+
 <main>
-  <video controls autoplay style="width:100%; max-height:90vh;" id="video-player">
-    <source src="/media/stream/?path={{ file_path }}" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-  <button type="button" class="btn btn-outline-info" id="set-poster-btn" data-id="{{ item_id }}">Set Poster</button>
+  <button type="button" class="btn btn-outline-info mt-2" id="set-poster-btn">Set Poster</button>
+
+    <div class="video-container">
+      <video 
+        controls
+        autoplay
+        id="video-player" 
+        data-setup='{"fluid": true}'
+        preload="auto"
+        class="video-js"
+      >
+        <source src="/media/stream/?path={{ file_path }}" type="video/mp4">
+      </video>
+    </div>
+  
 </main>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/video.min.js' %}"></script>
+<script src="{% static 'mediahub.js' %}"></script>
 
 <script>
+  let player = null;
+
+  const itemId = "{{ item_id }}";
+  const csrftoken = "{{ csrf_token }}";
+  const progress = "{{ progress }}"
+
   document.addEventListener("DOMContentLoaded", function() {
-      const backBtn = document.getElementById("back-btn");
-      backBtn.addEventListener("click", function() {  
-          window.location.href = "/library/{{ lib_slug }}";
-      });
+    const backBtn = document.getElementById("back-btn");
+    backBtn.addEventListener("click", function() {  
+      window.location.href = "/library/{{ lib_slug }}";
+    });
+
+        
+    player = videojs('video-player');
+
+    if(progress != 0) {
+      player.currentTime(progress);
+    } 
+
+    player.play();
   });
 
   document.getElementById("set-poster-btn")?.addEventListener("click", function(e) {
     e.preventDefault();
 
     const video = document.getElementById("video-player");
-    const currentTime = Math.floor(video.currentTime);  // in seconds
-    const itemId = this.dataset.id;
-    const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+    const currentTime = Math.floor(player.currentTime());  // in seconds
 
     fetch(`/set_poster/${itemId}/`, {
       method: "POST",
@@ -50,12 +77,25 @@
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        alert("Poster updated!");
+        showToast("Poster updated!")
       } else {
-        alert("Error: " + data.error);
+        showToast("Error: " + data.error, true);
       }
     });
   });
+
+  // Every 15s, save current time
+  setInterval(() => {
+    const currentTime = Math.floor(player.currentTime());
+    fetch(`/api/save_progress/${itemId}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+      },
+      body: JSON.stringify({ time: currentTime })
+    });
+  }, 15000);
 
 </script>
 

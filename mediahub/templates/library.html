@@ -26,32 +26,33 @@
 
   {% include "_navbar.html" %}
   
-<main>
+  {% include "_search.html" %}
 
-  <div class="grid pswp-gallery pswp-gallery--single-column" id="gallery">
-
-    {% for it in items %}
-      {% if it.item_type == 'media' and it.is_video == False %}
-        <div class="tile">
-          <a href="{{ it.poster_url }}" data-pswp-width="{{ it.width }}" data-pswp-height="{{ it.height }}" class="lightbox-item">
-            <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-            <div class="tile-title">{{ it.display_label }}</div>
-          </a>
-        </div>
-      {% else %}
-        <div class="tile">
-          <a href="{{ it.viewer_url }}">
-            <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-            <div class="tile-title">{{ it.display_label }}</div>
-          </a>
-        </div>
-      {% endif %}
-    {% endfor %}
+  <div class="container pt-2 pswp-gallery pswp-gallery--single-column" id="gallery">
+    <div class="row">
+      {% for it in items %}
+        {% if it.item_type == 'media' and it.is_video == False %}
+          <div class="tile">
+            <a href="{{ it.poster_url }}" data-pswp-width="{{ it.width }}" data-pswp-height="{{ it.height }}" class="lightbox-item">
+              <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
+              <div class="tile-title">{{ it.display_label }}</div>
+            </a>
+          </div>
+        {% else %}
+          <div class="tile">
+            <a href="{{ it.viewer_url }}">
+              <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
+              <div class="tile-title">{{ it.display_label }}</div>
+            </a>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
 
   </div>
 
-</main>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'mediahub.js' %}"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
       const backBtn = document.getElementById("back-btn");
