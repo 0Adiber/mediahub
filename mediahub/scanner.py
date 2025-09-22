@@ -27,23 +27,6 @@ def file_hash(path):
     h.update(str(os.path.getmtime(path)).encode())
     return h.hexdigest()
 
-def omdb_fetch(title):
-    api_key = settings.OMDB_API_KEY
-    if not api_key:
-        return None
-    try:
-        r = requests.get(
-            "http://www.omdbapi.com/",
-            params={"apikey": api_key, "t": title},
-            timeout=10,
-        )
-        data = r.json()
-        if data.get("Response") == "True":
-            return {"title": data.get("Title", title), "poster_url": data.get("Poster")}
-    except Exception:
-        return None
-    return None
-
 def tmdb_fetch(title):
     api_key = settings.TMDB_API_KEY
     if not api_key:
@@ -68,9 +51,11 @@ def tmdb_fetch(title):
         data = data["results"][0]
         otitle = data.get('original_title', title)
         poster_path = data.get('poster_path')
+        backdrop_path = data.get('backdrop_path')
         poster_url = "https://image.tmdb.org/t/p/w500" + poster_path if poster_path else None
-        
-        return {"title": otitle, "poster_url": poster_url}
+        backdrop_url = "https://image.tmdb.org/t/p/original" + backdrop_path if backdrop_path else poster_url
+
+        return {"title": otitle, "poster_url": poster_url, "backdrop_url": backdrop_url }
     except Exception:
         return None
 
@@ -88,6 +73,17 @@ def get_image_size(path):
             return img.width, img.height
     except Exception:
         return None, None
+
+def store_image(path, url):
+    if not path.exists():
+        try:
+            resp = requests.get(url, stream=True, timeout=20)
+            if resp.status_code == 200:
+                with open(path, "wb") as fh:
+                    for chunk in resp.iter_content(1024):
+                        fh.write(chunk)
+        except Exception:
+            pass
 
 def scan_folder(library, path, parent_folder=None):
     """
@@ -145,25 +141,27 @@ def scan_folder(library, path, parent_folder=None):
                 else:
                     media_item = MediaItem.objects.get(file_path = full_path)
 
-                # fetch OMDB poster if needed
-                if library.sync and media_item.is_video and media_item.poster == None:
-                    omdb = tmdb_fetch(media_item.title)
-                    print(omdb, flush=True)
-                    if omdb:
-                        media_item.title = omdb["title"]
-                        if omdb.get("poster_url") and omdb["poster_url"] != "N/A":
-                            poster_cache = f"{file_hash(full_path)}.jpg"
+                # fetch TMDB poster if needed
+                if library.sync and media_item.is_video and (media_item.poster == None or media_item.backdrop == None):
+                    tmdb = tmdb_fetch(media_item.title)
+
+                    if tmdb:
+                        media_item.title = tmdb["title"]
+
+                        # either backdrop has its own url, or its the poster_url so this is ok
+                        if tmdb.get("poster_url") and tmdb["poster_url"] != "N/A":
+
+                            movie_hash = file_hash(full_path)
+                            poster_cache = f"{movie_hash}.jpg"
                             poster_path = settings.POSTER_DIR / poster_cache
-                            if not poster_path.exists():
-                                try:
-                                    resp = requests.get(omdb["poster_url"], stream=True, timeout=20)
-                                    if resp.status_code == 200:
-                                        with open(poster_path, "wb") as fh:
-                                            for chunk in resp.iter_content(1024):
-                                                fh.write(chunk)
-                                except Exception:
-                                    pass
+                            backdrop_cache = f"{movie_hash}.jpg"
+                            backdrop_path = settings.BACKDROP_DIR / backdrop_cache
+
+                            store_image(poster_path, tmdb["poster_url"])
+                            store_image(backdrop_path, tmdb["backdrop_url"])
+                            
                             media_item.poster = poster_cache
+                            media_item.backdrop = backdrop_cache
                         media_item.save()
 
 
@@ -218,3 +216,19 @@ def capture_frame(video_path, output_path, time="00:00:05"):
         "ffmpeg", "-y", "-ss", time, "-i", video_path,
         "-vframes", "1", "-q:v", "2", str(output_path)
     ], check=True)
+
+def get_preview(path):
+    # For videos → extract frame with ffmpeg
+    thumb_path = settings.CACHE_DIR / f"preview_{os.path.basename(path)}.jpg"
+    
+    if not thumb_path.exists():
+        try:
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", path, "-ss", "00:00:02.000", "-vframes", "1", str(thumb_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            return None
+    
+    return thumb_path

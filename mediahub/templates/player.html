@@ -16,23 +16,23 @@
 
   {% include "_toast.html" %}
 
-<main>
-  <button type="button" class="btn btn-outline-info mt-2" id="set-poster-btn">Set Poster</button>
+<div id="main-frame" style="background-image: url('{{ backdrop_url }}');">
+  <!--<button type="button" class="btn btn-outline-info mt-2" id="set-poster-btn">Set Poster</button>-->
 
     <div class="video-container">
       <video 
         controls
-        autoplay
+        poster="{{ backdrop_url }}"
         id="video-player" 
         data-setup='{"fluid": true}'
-        preload="auto"
+        preload="none"
         class="video-js"
       >
         <source src="/media/stream/?path={{ file_path }}" type="video/mp4">
       </video>
     </div>
   
-</main>
+  </div>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'js/video.min.js' %}"></script>
 <script src="{% static 'mediahub.js' %}"></script>
@@ -51,13 +51,16 @@
     });
 
         
-    player = videojs('video-player');
+    player = videojs('video-player', {
+      userActions: {
+        hotkeys: {},
+      }
+    });
 
     if(progress != 0) {
       player.currentTime(progress);
     } 
 
-    player.play();
   });
 
   document.getElementById("set-poster-btn")?.addEventListener("click", function(e) {

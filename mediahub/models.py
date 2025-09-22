@@ -36,6 +36,7 @@ class MediaItem(models.Model):
     file_path = models.TextField(unique=True)
     title = models.CharField(max_length=300)
     poster = models.TextField(null=True, blank=True)  # cached filename
+    backdrop = models.TextField(null=True, blank=True) # cached filename
     is_video = models.BooleanField(default=False)
     ext = models.CharField(max_length=10)
     folder = models.ForeignKey(FolderItem, null=True, blank=True, on_delete=models.CASCADE, related_name="items")

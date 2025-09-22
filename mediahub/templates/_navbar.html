@@ -18,6 +18,9 @@
       {% endif %}
     </span>
     <div class="d-flex ms-auto">
+      {% if progress != None %}
+      <button class="btn btn-outline-info btn-sm me-2" id="set-poster-btn">Set Poster</button>
+      {% endif %}
       <a class="btn btn-outline-primary btn-sm me-2" href="/refresh/">Refresh</a>
       {% if not show_hidden and pin_required %}
       <form class="d-flex" action="/show_hidden/" method="post">

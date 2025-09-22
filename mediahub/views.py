@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
 from .models import Library, MediaItem, FolderItem, PlaybackProgress
-from .scanner import scan_once_safe, load_config, capture_frame
+from .scanner import scan_once_safe, load_config, get_preview
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
@@ -162,30 +162,32 @@ def preview_media(request):
     if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
         return FileResponse(open(path, "rb"), content_type=mimetypes.guess_type(path)[0])
 
-    # For videos → extract frame with ffmpeg
-    thumb_path = settings.CACHE_DIR / f"preview_{os.path.basename(path)}.jpg"
-    if not thumb_path.exists():
-        try:
-            subprocess.run(
-                ["ffmpeg", "-y", "-i", path, "-ss", "00:00:02.000", "-vframes", "1", str(thumb_path)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception:
-            raise Http404("Preview not available")
-    return FileResponse(open(thumb_path, "rb"), content_type="image/jpeg")
+    thumb_path = get_preview(path)
+
+    if not thumb_path:
+        raise Http404("Preview not available")
+    else:
+        return FileResponse(open(thumb_path, "rb"), content_type="image/jpeg")
 
 def player_view(request):
     path = unquote(request.GET.get("path"))
     lib_slug = request.GET.get("lib")
 
+    if not path or not os.path.exists(path):
+        raise Http404("File not found")
+    
     vid = MediaItem.objects.get(file_path=path)
     progress = PlaybackProgress.objects.filter(media_item=vid.id).first()
 
-    if not path or not os.path.exists(path):
-        raise Http404("File not found")
+    if vid.library.sync:
+        backdrop_url = "/static_cache/backdrop/" + vid.backdrop if vid.backdrop else vid.poster
+    else:
+        backdrop_url = "/static_cache/" + os.path.basename(get_preview(path))
+        print(backdrop_url, flush=True)
+
     return render(request, "player.html", {
         "file_path": quote(path), 
+        "backdrop_url": backdrop_url,
         "item_id": vid.id, 
         "lib_slug": lib_slug, 
         "breadcrumb_path": "/" + vid.title,

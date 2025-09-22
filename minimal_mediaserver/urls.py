@@ -23,3 +23,5 @@ urlpatterns = [
 ]
 
 urlpatterns += static("/static_cache/posters/", document_root=settings.POSTER_DIR)
+urlpatterns += static("/static_cache/backdrop/", document_root=settings.BACKDROP_DIR)
+urlpatterns += static("/static_cache/", document_root=settings.CACHE_DIR)
