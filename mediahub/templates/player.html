@@ -34,6 +34,30 @@
         <source src="/media/stream/?path={{ file_path }}" type="video/mp4">
       </video>
     </div>
+
+    <div class="movie-other card text-light mt-3 mb-3 shadow-sm border-0 rounded-3">
+
+      <div class="card-body">
+        <span class="card-title h5 mb-2 me-2">
+          {{ item.title }}
+          {% if item.year %}
+            , {{ item.year }}
+          {% endif %}
+        </span>
+        
+        {% for g in item.genre%}
+          <span class="badge rounded-pill text-bg-info">{{ g }}</span>
+        {% endfor %}
+        
+
+        {% if item.description %}
+          <p class="card-text pt-2">
+            {{ item.description }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+     
   
   </div>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>

@@ -1,4 +1,16 @@
-body { font-family: sans-serif; margin: 0; padding: 0; background: #121212; color: #eee; }
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+  font-family: "Roboto", sans-serif;
+  margin: 0; 
+  padding: 0; 
+  background: #121212; 
+  color: #eee;
+}
+
+.bg-dark {
+  background-color: #0F2133 !important;
+}
 
 .grid { 
   display:flex; 
@@ -14,6 +26,10 @@ body { font-family: sans-serif; margin: 0; padding: 0; background: #121212; colo
   overflow:hidden; 
   text-decoration:none; 
   color:inherit; 
+}
+
+.tile a {
+  text-decoration: none;
 }
 
 .thumb { 
@@ -110,7 +126,10 @@ body { font-family: sans-serif; margin: 0; padding: 0; background: #121212; colo
   width: 60%;
 }
 
-#set-poster-btn {
+.movie-other {
+  width: 60%;
+  height: 100vh;
+  background-color: rgba(15, 33, 51, 0.8);
 }
 
 /* Mobile adjustments */

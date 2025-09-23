@@ -42,6 +42,9 @@ class MediaItem(models.Model):
     folder = models.ForeignKey(FolderItem, null=True, blank=True, on_delete=models.CASCADE, related_name="items")
     width = models.IntegerField(null=True, blank=True)
     height = models.IntegerField(null=True, blank=True)
+    year = models.IntegerField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    genre = models.JSONField(default=list)
 
     @property
     def display_label(self):

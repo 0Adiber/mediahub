@@ -10,6 +10,8 @@ import threading
 from urllib.parse import quote
 from PIL import Image
 import subprocess
+from datetime import datetime
+from .util import genres_dict
 
 _scan_lock = threading.Lock()
 
@@ -55,7 +57,26 @@ def tmdb_fetch(title):
         poster_url = "https://image.tmdb.org/t/p/w500" + poster_path if poster_path else None
         backdrop_url = "https://image.tmdb.org/t/p/original" + backdrop_path if backdrop_path else poster_url
 
-        return {"title": otitle, "poster_url": poster_url, "backdrop_url": backdrop_url }
+        description = data.get('overview')
+        release_date = data.get('release_date')
+        if release_date:
+            dt = datetime.strptime(release_date, '%Y-%m-%d')
+        year = dt.year if dt else None
+
+        genre_ids = data.get('genre_ids')
+
+        genres = []
+        for gid in genre_ids:
+            genres.append(genres_dict[gid])
+
+        return {
+            "title": otitle, 
+            "poster_url": poster_url, 
+            "backdrop_url": backdrop_url, 
+            "description": description, 
+            "year": year,
+            "genres": genres,
+        }
     except Exception:
         return None
 
@@ -141,12 +162,15 @@ def scan_folder(library, path, parent_folder=None):
                 else:
                     media_item = MediaItem.objects.get(file_path = full_path)
 
-                # fetch TMDB poster if needed
-                if library.sync and media_item.is_video and (media_item.poster == None or media_item.backdrop == None):
+                # fetch TMDB
+                if library.sync and media_item.is_video:
                     tmdb = tmdb_fetch(media_item.title)
 
                     if tmdb:
                         media_item.title = tmdb["title"]
+                        media_item.description = tmdb["description"]
+                        media_item.year = tmdb["year"]
+                        media_item.genre = tmdb["genres"]
 
                         # either backdrop has its own url, or its the poster_url so this is ok
                         if tmdb.get("poster_url") and tmdb["poster_url"] != "N/A":

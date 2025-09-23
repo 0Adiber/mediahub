@@ -186,6 +186,7 @@ def player_view(request):
         print(backdrop_url, flush=True)
 
     return render(request, "player.html", {
+        "item": vid,
         "file_path": quote(path), 
         "backdrop_url": backdrop_url,
         "item_id": vid.id, 
