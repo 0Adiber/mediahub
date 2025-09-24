@@ -145,6 +145,7 @@ def scan_folder(library, path, parent_folder=None):
 
                     is_video = ext in ALLOWED_VIDEO_EXTS
                     width, height = get_image_size(full_path)
+                    size = os.path.getsize(full_path)
 
                     media_item, _ = MediaItem.objects.update_or_create(
                         file_path=full_path,
@@ -152,6 +153,7 @@ def scan_folder(library, path, parent_folder=None):
                         folder=folder_item,
                         width=width,
                         height=height,
+                        file_size=size,
                         defaults={
                             "title": os.path.splitext(entry.name)[0].replace("-", " ").replace("_", " "),
                             "poster": None,

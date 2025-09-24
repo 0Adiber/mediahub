@@ -26,6 +26,15 @@ def index(request):
         "show_hidden": request.session.get("show_hidden", False),
     })
 
+def get_folder_size(folder):
+    size = 0
+    for it in folder.items.all():
+        if isinstance(it, FolderItem):
+            size += get_folder_size(it)
+        else:
+            size += it.file_size
+    return size
+
 def library_view(request, lib_slug):
     lib = get_object_or_404(Library, slug=lib_slug)
     if lib.hidden and not request.session.get("show_hidden"):
@@ -36,6 +45,7 @@ def library_view(request, lib_slug):
     current_path = []
 
     folder = None
+
     if lib.type == "pictures":
         if folder_id:
             folder = get_object_or_404(FolderItem, id=folder_id, library=lib)
@@ -90,17 +100,27 @@ def library_view(request, lib_slug):
             else:
                 it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={lib.slug}"
 
+    size = 0
     for it in items:
         if isinstance(it, FolderItem):
             it.item_type = "folder"
+            size += get_folder_size(it)
         else:
             it.item_type = "media"
+            size += it.file_size
 
     current_path.insert(0, lib.name)
     breadcrumb_path = "/" + "/".join(current_path)
     parent_id = folder.parent.id if folder and folder.parent else None
 
-    return render(request, "library.html", {"library": lib, "items": items, "breadcrumb_path": breadcrumb_path, "parent_id": parent_id})
+    return render(request, "library.html", {
+        "library": lib, 
+        "size": size,
+        "items": items, 
+        "breadcrumb_path": breadcrumb_path, 
+        "parent_id": parent_id,
+        "item_count": len(items),
+    })
 
 def refresh_view(request):
     threading.Thread(target=scan_once_safe, daemon=True).start()

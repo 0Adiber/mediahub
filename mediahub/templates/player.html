@@ -55,6 +55,8 @@
             {{ item.description }}
           </p>
         {% endif %}
+
+        <p class="text-secondary mt-3">File Path: {{ item.file_path }}, Size on Disk: {{ item.file_size|filesizeformat }}</p>
       </div>
     </div>
      

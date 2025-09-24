@@ -30,6 +30,10 @@
   
   {% include "_search.html" %}
 
+  <div class="item-count">
+    <span class="me-3">Items: {{ item_count }} / {{ size|filesizeformat }}</span>
+  </div>
+
   <div class="container pt-2 pswp-gallery pswp-gallery--single-column" id="gallery">
     <div class="row">
       {% for it in items %}
