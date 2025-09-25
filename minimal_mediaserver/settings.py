@@ -128,9 +128,12 @@ STATICFILES_DIRS = [BASE_DIR / "mediahub" / "static"]
 CACHE_DIR = BASE_DIR / "cache"
 POSTER_DIR = CACHE_DIR / "posters"
 BACKDROP_DIR = CACHE_DIR / "backdrop"
+SUBTITLES_DIR = CACHE_DIR / "subtitles"
 CACHE_DIR.mkdir(exist_ok=True)
 POSTER_DIR.mkdir(parents=True, exist_ok=True)
 BACKDROP_DIR.mkdir(parents=True, exist_ok=True)
+SUBTITLES_DIR.mkdir(parents=True, exist_ok=True)
 
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "")
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+SUBDL_API_KEY = os.environ.get("SUBDL_API_KEY", "")

@@ -64,6 +64,7 @@ def tmdb_fetch(title):
         year = dt.year if dt else None
 
         genre_ids = data.get('genre_ids')
+        id = data.get('id')
 
         genres = []
         for gid in genre_ids:
@@ -76,6 +77,7 @@ def tmdb_fetch(title):
             "description": description, 
             "year": year,
             "genres": genres,
+            "id": id,
         }
     except Exception:
         return None
@@ -173,6 +175,7 @@ def scan_folder(library, path, parent_folder=None):
                         media_item.description = tmdb["description"]
                         media_item.year = tmdb["year"]
                         media_item.genre = tmdb["genres"]
+                        media_item.tmdb_id = tmdb["id"]
 
                         # either backdrop has its own url, or its the poster_url so this is ok
                         if tmdb.get("poster_url") and tmdb["poster_url"] != "N/A":

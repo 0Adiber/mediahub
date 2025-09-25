@@ -26,8 +26,10 @@ Organize, stream, and enjoy your movies, shows, and photos from any device with 
   - Responsive UI with larger buttons and touch-friendly controls on phones
   - Courtesy of [Bootstrap](https://getbootstrap.com/)
 
-- 🔐 **User Aware**  
-  - NOT YET
+- 🗒️ **Subtitle Support**  
+  - ONLY in English at the moment
+  - config settings will follow
+  - _Subtitles will cause the UI to load slower when opening a movie for the first time ... this will be fixed_ 
 
 ---
 
@@ -99,8 +101,11 @@ hidden_pin: "1234"
 
 If you want to sync movie posters / titles from a movie database, please visit [TMDB](https://www.themoviedb.org/) and create an account. Copy your API KEY and set it as environment variable.
 
+If you want subtitles, please visit [SUBDL](https://subdl.com/) and create an account. Copy your API KEY and set it as environment variable. 
+
 ```bash
 export TMDB_API_KEY="..."
+export SUBDL_API_KEY="..."
 ```
 
 ### Run as Service
@@ -125,9 +130,10 @@ export TMDB_API_KEY="..."
 cd <mediahub_base_directory>
 source venv/bin/activate
 export TMDB_API_KEY=<your_api_key>
+export SUBDL_API_KEY=<your_api_key>
 python manage.py runserver 0.0.0.0:8000
 ```
 
 - `<your_user>` ... the user you want to run the service as
 - `<mediahub_base_directory>` ... the repository clone directory
-- `<your_api_key>` ... your TMDB API Key
+- `<your_api_key>` ... your TMDB API Key / SUBDL API Key

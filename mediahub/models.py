@@ -46,6 +46,7 @@ class MediaItem(models.Model):
     description = models.TextField(null=True, blank=True)
     genre = models.JSONField(default=list)
     file_size = models.BigIntegerField(default=0)
+    tmdb_id = models.IntegerField(null=True, blank=True)
 
     @property
     def display_label(self):
