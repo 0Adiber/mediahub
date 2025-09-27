@@ -5,6 +5,7 @@ import io
 import re
 from django.conf import settings
 from .models import SubtitleItem, MediaItem, Language
+from django_q.tasks import async_task
 
 def search_subtitles_by_tmdb(tmdb_id: int, languages: str):
     """Search for subtitles via SubDL API given a TMDB ID, filtering by languages."""
@@ -89,8 +90,8 @@ def fetch_subtitles(vid: MediaItem):
 def get_or_fetch(vid: MediaItem):
     subtitles = vid.subtitles.all()
     if not subtitles:
-        fetch_subtitles(vid)
-    return vid.subtitles.all()
+        async_task(fetch_subtitles, vid)
+    return subtitles
 
 def srt_to_vtt(srt_path: str, vtt_path: str):
     with open(srt_path, "r", encoding="utf-8") as srt_file:

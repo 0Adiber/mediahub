@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mediahub'
+    'mediahub',
+    'django_q'
 ]
 
 MIDDLEWARE = [
@@ -137,3 +138,12 @@ SUBTITLES_DIR.mkdir(parents=True, exist_ok=True)
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "")
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 SUBDL_API_KEY = os.environ.get("SUBDL_API_KEY", "")
+
+Q_CLUSTER = {
+    'name': 'DjangoQ',
+    'workers': 2,
+    'recycle': 500,
+    'timeout': 60,
+    'catch_up': False,
+    'orm': 'default',  # use database as broker
+}

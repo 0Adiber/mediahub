@@ -26,10 +26,9 @@ Organize, stream, and enjoy your movies, shows, and photos from any device with 
   - Responsive UI with larger buttons and touch-friendly controls on phones
   - Courtesy of [Bootstrap](https://getbootstrap.com/)
 
-- 🗒️ **Subtitle Support**  
+- 🗒️ **Subtitle Support** 
   - ONLY in English at the moment
   - config settings will follow
-  - _Subtitles will cause the UI to load slower when opening a movie for the first time ... this will be fixed_ 
 
 ---
 
@@ -121,6 +120,7 @@ export SUBDL_API_KEY="..."
   Group=<your_user>
   WorkingDirectory=<mediahub_base_directory>
   ExecStart=<mediahub_base_directory>/start-server.sh
+  KillMode=control-group
   Restart=always
 ```
 
@@ -131,7 +131,11 @@ cd <mediahub_base_directory>
 source venv/bin/activate
 export TMDB_API_KEY=<your_api_key>
 export SUBDL_API_KEY=<your_api_key>
-python manage.py runserver 0.0.0.0:8000
+
+python manage.py qcluster &
+python manage.py runserver 0.0.0.0:8000 &
+
+wait
 ```
 
 - `<your_user>` ... the user you want to run the service as
