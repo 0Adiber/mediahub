@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
 from .models import Library, MediaItem, FolderItem, PlaybackProgress
 from .scanner import scan_once_safe, load_config, get_preview
-from .subtitles import get_or_fetch_subtitles
+from .subtitles import get_or_fetch
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
@@ -205,10 +205,7 @@ def player_view(request):
     else:
         backdrop_url = "/static_cache/" + os.path.basename(get_preview(path))
 
-    if vid.tmdb_id:
-        subtitles = get_or_fetch_subtitles(vid.tmdb_id)
-    else:
-        subtitles = {}
+    subtitles = get_or_fetch(vid)
 
     return render(request, "player.html", {
         "item": vid,

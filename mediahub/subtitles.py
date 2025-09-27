@@ -4,6 +4,7 @@ import os
 import io
 import re
 from django.conf import settings
+from .models import SubtitleItem, MediaItem, Language
 
 def search_subtitles_by_tmdb(tmdb_id: int, languages: str):
     """Search for subtitles via SubDL API given a TMDB ID, filtering by languages."""
@@ -24,7 +25,7 @@ def search_subtitles_by_tmdb(tmdb_id: int, languages: str):
 
     return data.get("subtitles", [])
 
-def download_subdl_subtitle(sub_info: dict, path: str):
+def download_subdl_subtitle(sub_info: dict, path: str) -> bool: 
     """
     Download a subtitle ZIP from SubDL, extract the first .srt,
     convert it to .vtt, and save to the given final file path.
@@ -61,11 +62,14 @@ def download_subdl_subtitle(sub_info: dict, path: str):
             # Save as .vtt
             with open(path, "w", encoding="utf-8") as dst:
                 dst.write(vtt_text)
-    except:
-        return
 
-def fetch_subtitles(tmdb_id: int):
+            return True
+    except:
+        return False
+
+def fetch_subtitles(vid: MediaItem):
     """Main: fetch English subtitle via SubDL, store it under SUBTITLES_DIR/tmdb_id/."""
+    tmdb_id = vid.tmdb_id
     languages = "EN" # comma separated list
     subs = search_subtitles_by_tmdb(tmdb_id, languages)
     if not subs:
@@ -77,45 +81,16 @@ def fetch_subtitles(tmdb_id: int):
         movie_folder = os.path.join(settings.SUBTITLES_DIR, str(tmdb_id), lang)
         os.makedirs(movie_folder, exist_ok=True)
 
-        next_num = get_next_subtitle_num(movie_folder, lang)
-
-        fname = sub.get("file_name", f"{lang}-{next_num}.vtt")
+        fname = f"{sub.get('release_name')}.vtt"
         path = os.path.join(movie_folder, fname)
-        download_subdl_subtitle(sub, path)
+        if download_subdl_subtitle(sub, path):
+            store_subtitle(vid=vid, path=f"{vid.tmdb_id}/{lang}/{fname}", lang=lang, language=sub.get("lang"))
 
-    return get_subtitles(tmdb_id)
-
-def get_next_subtitle_num(directory: str, lang: str, ext: str = ".vtt") -> int:
-    """
-    Scan a directory for files matching prefixNN.ext (e.g., file-01.txt),
-    find the highest NN, and return the path for the next number.
-    """
-    pattern = re.compile(rf"^{re.escape(lang)}-(\d+){re.escape(ext)}$")
-    max_num = 0
-
-    for fname in os.listdir(directory):
-        match = pattern.match(fname)
-        if match:
-            num = int(match.group(1))
-            max_num = max(max_num, num)
-
-    return max_num + 1
-
-def get_subtitles(tmdb_id: int):
-    directory = os.path.join(settings.SUBTITLES_DIR, str(tmdb_id))
-
-    if not os.path.exists(directory):
-        return {}
-
-    subtitles = {}
-    for item in os.listdir(directory):
-        lang_dir = os.path.join(directory, item)
-        if os.path.isdir(lang_dir):
-            subtitles[item] = []
-            for sub in os.listdir(lang_dir):
-                subtitles[item].append(sub)
-
-    return subtitles
+def get_or_fetch(vid: MediaItem):
+    subtitles = vid.subtitles.all()
+    if not subtitles:
+        fetch_subtitles(vid)
+    return vid.subtitles.all()
 
 def srt_to_vtt(srt_path: str, vtt_path: str):
     with open(srt_path, "r", encoding="utf-8") as srt_file:
@@ -127,8 +102,15 @@ def srt_to_vtt(srt_path: str, vtt_path: str):
     with open(vtt_path, "w", encoding="utf-8") as vtt_file:
         vtt_file.write(vtt_content)
 
-def get_or_fetch_subtitles(tmdb_id):
-    subtitles = get_subtitles(tmdb_id)
-    if len(subtitles) == 0:
-        subtitles = fetch_subtitles(tmdb_id)
-    return subtitles
+def store_subtitle(vid: MediaItem, path: str, lang: str, language: str): 
+
+    langItem,_ = Language.objects.get_or_create(
+        code=lang,
+        defaults={"language": language}
+    )
+
+    SubtitleItem.objects.update_or_create(
+        media_item=vid,
+        path=path,
+        lang=langItem
+    )

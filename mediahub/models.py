@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Max
 
 class Library(models.Model):
     slug = models.SlugField(unique=True)
@@ -60,3 +61,28 @@ class PlaybackProgress(models.Model):
     position = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
+class Language(models.Model):
+    code = models.CharField(max_length=2, primary_key=True)
+    language = models.CharField(max_length=20)
+
+class SubtitleItem(models.Model):
+    media_item = models.ForeignKey(MediaItem, on_delete=models.CASCADE, related_name="subtitles")
+    path = models.TextField(unique=True)
+    lang = models.ForeignKey(Language, on_delete=models.DO_NOTHING)
+    number = models.PositiveBigIntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("media_item", "lang", "number")
+
+    def save(self, *args, **kwargs):
+        if self.number is None:
+            last_num = (
+                SubtitleItem.objects.filter(media_item=self.media_item, lang=self.lang)
+                    .aggregate(Max("number"))["number__max"]
+            )
+            self.number = (last_num or 0) + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def display_label(self):
+        return f"{self.lang.language.capitalize()}-{self.number:02d}"

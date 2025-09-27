@@ -32,10 +32,13 @@
         class="video-js"
       >
         <source src="/media/stream/?path={{ file_path }}" type="video/mp4">
-        {% for lang, sub in subtitles.items %}
-          {% for track in sub %}
-            <track kind="subtitles" src="/static_cache/subtitles/{{ item.tmdb_id }}/{{ lang }}/{{ track }}" srclang="{{ lang }}" label="{{ track }}" default>
-          {% endfor %}
+        {% for sub in subtitles %}
+          <track 
+          kind="subtitles" 
+          src="/static_cache/subtitles/{{ sub.path }}" 
+          srclang="{{ sub.lang.code }}" 
+          label="{{ sub.display_label }}" 
+          default>
         {% endfor %}
       </video>
     </div>
