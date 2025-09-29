@@ -278,7 +278,6 @@ def search_view(request):
         final_results = []
         # Combine results
         for item in results:
-            print(item)
             if hasattr(item, 'ext'):
                 final_results.append({
                     "type": "media",

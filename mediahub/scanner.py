@@ -12,6 +12,7 @@ from PIL import Image
 import subprocess
 from datetime import datetime
 from .util import genres_dict
+from django_q.tasks import async_task
 
 _scan_lock = threading.Lock()
 
@@ -81,6 +82,34 @@ def tmdb_fetch(title):
         }
     except Exception:
         return None
+
+def tmdb_get(id):
+    media_item = MediaItem.objects.get(id=id)
+    # fetch TMDB
+    tmdb = tmdb_fetch(media_item.title)
+
+    if tmdb:
+        media_item.title = tmdb["title"]
+        media_item.description = tmdb["description"]
+        media_item.year = tmdb["year"]
+        media_item.genre = tmdb["genres"]
+        media_item.tmdb_id = tmdb["id"]
+
+        # either backdrop has its own url, or its the poster_url so this is ok
+        if tmdb.get("poster_url") and tmdb["poster_url"] != "N/A":
+
+            movie_hash = file_hash(media_item.file_path)
+            poster_cache = f"{movie_hash}.jpg"
+            poster_path = settings.POSTER_DIR / poster_cache
+            backdrop_cache = f"{movie_hash}.jpg"
+            backdrop_path = settings.BACKDROP_DIR / backdrop_cache
+
+            store_image(poster_path, tmdb["poster_url"])
+            store_image(backdrop_path, tmdb["backdrop_url"])
+            
+            media_item.poster = poster_cache
+            media_item.backdrop = backdrop_cache
+        media_item.save()
 
 def get_first_image(folder_path):
     for root, dirs, files in os.walk(folder_path):
@@ -165,33 +194,9 @@ def scan_folder(library, path, parent_folder=None):
                     )
                 else:
                     media_item = MediaItem.objects.get(file_path = full_path)
-
-                # fetch TMDB
-                if library.sync and media_item.is_video:
-                    tmdb = tmdb_fetch(media_item.title)
-
-                    if tmdb:
-                        media_item.title = tmdb["title"]
-                        media_item.description = tmdb["description"]
-                        media_item.year = tmdb["year"]
-                        media_item.genre = tmdb["genres"]
-                        media_item.tmdb_id = tmdb["id"]
-
-                        # either backdrop has its own url, or its the poster_url so this is ok
-                        if tmdb.get("poster_url") and tmdb["poster_url"] != "N/A":
-
-                            movie_hash = file_hash(full_path)
-                            poster_cache = f"{movie_hash}.jpg"
-                            poster_path = settings.POSTER_DIR / poster_cache
-                            backdrop_cache = f"{movie_hash}.jpg"
-                            backdrop_path = settings.BACKDROP_DIR / backdrop_cache
-
-                            store_image(poster_path, tmdb["poster_url"])
-                            store_image(backdrop_path, tmdb["backdrop_url"])
-                            
-                            media_item.poster = poster_cache
-                            media_item.backdrop = backdrop_cache
-                        media_item.save()
+                
+                if media_item.library.sync and media_item.is_video and media_item.poster == None:
+                    async_task("mediahub.scanner.tmdb_get", media_item.id)
 
 
 def scan_once():
@@ -233,7 +238,6 @@ def scan_once():
 def scan_once_safe():
     if _scan_lock.locked():
         print("Scan already in progress, skipping...")
-        return
 
     with _scan_lock:
         scan_once()
