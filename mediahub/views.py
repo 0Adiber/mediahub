@@ -1,14 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
 from .models import Library, MediaItem, FolderItem, PlaybackProgress, Collection
-from .scanner import scan_once_safe, load_config, get_preview, _scan_lock
+from .scanner import scan_once_safe, load_config, get_preview
 from .subtitles import get_or_fetch
 import os, mimetypes, subprocess
 from wsgiref.util import FileWrapper
 from django.conf import settings
 from django.db.models import Q
-from PIL import Image
-import threading
 from urllib.parse import quote, unquote
 import json
 from random import sample
@@ -157,8 +155,7 @@ def library_view(request, lib_slug):
     })
 
 def refresh_view(request):
-    lock = _scan_lock.locked()
-    threading.Thread(target=scan_once_safe, daemon=True).start()
+    lock = scan_once_safe()
     return JsonResponse({"lock": lock})
 
 def stream_media(request):

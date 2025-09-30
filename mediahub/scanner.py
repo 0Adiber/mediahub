@@ -10,11 +10,13 @@ import threading
 from urllib.parse import quote
 from PIL import Image
 import subprocess
-from datetime import datetime
 from .util import genres_dict
 from django_q.tasks import async_task
+import re
+import logging
 
 _scan_lock = threading.Lock()
+logger = logging.getLogger(__name__)
 
 ALLOWED_VIDEO_EXTS = {".mp4", ".mkv", ".avi", ".mov"}
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
@@ -30,7 +32,7 @@ def file_hash(path):
     h.update(str(os.path.getmtime(path)).encode())
     return h.hexdigest()
 
-def tmdb_fetch(title):
+def tmdb_fetch(title, year):
     api_key = settings.TMDB_API_KEY
     if not api_key:
         return None
@@ -42,7 +44,8 @@ def tmdb_fetch(title):
                 'query': quote(title),
                 'include_adult': True, 
                 'language': 'en', 
-                'page': 1, 
+                'page': 1,
+                'year': year,
                 'api_key': api_key
                 },
             headers={'accept': 'application/json'},
@@ -59,10 +62,6 @@ def tmdb_fetch(title):
         backdrop_url = "https://image.tmdb.org/t/p/original" + backdrop_path if backdrop_path else poster_url
 
         description = data.get('overview')
-        release_date = data.get('release_date')
-        if release_date:
-            dt = datetime.strptime(release_date, '%Y-%m-%d')
-        year = dt.year if dt else None
 
         genre_ids = data.get('genre_ids')
         id = data.get('id')
@@ -85,8 +84,7 @@ def tmdb_fetch(title):
             "title": otitle, 
             "poster_url": poster_url, 
             "backdrop_url": backdrop_url, 
-            "description": description, 
-            "year": year,
+            "description": description,
             "genres": genres,
             "id": id,
             "collection": collection,
@@ -97,7 +95,7 @@ def tmdb_fetch(title):
 def tmdb_get(id):
     media_item = MediaItem.objects.get(id=id)
     # fetch TMDB
-    tmdb = tmdb_fetch(media_item.title)
+    tmdb = tmdb_fetch(media_item.title, media_item.year)
 
     if tmdb:
 
@@ -114,7 +112,6 @@ def tmdb_get(id):
         media_item.collection = collection
         media_item.title = tmdb["title"]
         media_item.description = tmdb["description"]
-        media_item.year = tmdb["year"]
         media_item.genre = tmdb["genres"]
         media_item.tmdb_id = tmdb["id"]
 
@@ -201,6 +198,17 @@ def scan_folder(library, path, parent_folder=None):
                     width, height = get_image_size(full_path)
                     size = os.path.getsize(full_path)
 
+                    name = os.path.splitext(entry.name)[0]
+                    name = name.replace("-", " ").replace("_", " ").strip()
+
+                    match = re.search(r"(.*)\b(\d{4})$", name)
+                    if match:
+                        title = match.group(1).strip()
+                        year = int(match.group(2))
+                    else:
+                        title = name.strip()
+                        year = None
+
                     media_item, _ = MediaItem.objects.update_or_create(
                         file_path=full_path,
                         library=library,
@@ -209,7 +217,8 @@ def scan_folder(library, path, parent_folder=None):
                         height=height,
                         file_size=size,
                         defaults={
-                            "title": os.path.splitext(entry.name)[0].replace("-", " ").replace("_", " "),
+                            "title": title,
+                            "year": year,
                             "poster": None,
                             "is_video": is_video,
                             "ext": ext
@@ -223,6 +232,8 @@ def scan_folder(library, path, parent_folder=None):
 
 
 def scan_once():
+    _scan_lock.acquire()
+
     cfg = load_config()
     libraries = cfg.get("libraries", [])
 
@@ -258,12 +269,15 @@ def scan_once():
 
         scan_folder(library, library.path, parent_folder=None)
 
-def scan_once_safe():
-    if _scan_lock.locked():
-        print("Scan already in progress, skipping...")
+    _scan_lock.release()
 
-    with _scan_lock:
-        scan_once()
+def scan_once_safe():
+    lock = _scan_lock.locked()
+
+    if not lock:
+        async_task("mediahub.scanner.scan_once")
+
+    return lock
 
 def capture_frame(video_path, output_path, time="00:00:05"):
     """Capture a frame at 5 seconds (default)"""
