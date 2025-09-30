@@ -21,10 +21,25 @@ def index(request):
     else:
         libs = Library.objects.filter(hidden=False)
 
+    media_items = list(
+        MediaItem.objects
+        .filter(library__hidden=False, is_video=True)
+        .order_by("-id")[:10]
+    )
+
+    for it in media_items:
+        if it.poster:
+            it.poster_url = "/static_cache/posters/" + it.poster
+        else:
+            it.poster_url = "/static/images/mediahub-placeholder.jpg"
+
+        it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={it.library.slug}"
+
     return render(request, "index.html", {
         "libraries": libs,
         "pin_required": pin_required is not None,
         "show_hidden": request.session.get("show_hidden", False),
+        "media_items": media_items,
     })
 
 def get_folder_size(folder):

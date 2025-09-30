@@ -20,29 +20,64 @@
 {% include "_toast.html" %}
 
 <div class="container mt-4" z-index="99">
-  <div class="row g-3">
-    {% for lib in libraries %}
-      <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-        <div class="lib-tile card h-100 shadow-sm text-white">
-          <a href="/library/{{ lib.slug }}/">
-            {% if lib.type == 'movies' %}
-              <img src="{% static 'images/movie-icon.svg' %}" class="card-img-top p-2" alt="{{ lib.name }}">
-            {% elif lib.type == 'pictures' %}
-              <img src="{% static 'images/picture-icon.svg' %}" class="card-img-top p-2" alt="{{ lib.name }}">
-            {% else %}
-              <img src="{% static 'images/folder-icon.png' %}" class="card-img-top p-2" alt="{{ lib.name }}">
-            {% endif %}
+  
+  <div class="position-relative">
+    <p>newest additions</p>
+    <div id="mediaRow" class="d-flex overflow-hidden" style="scroll-behavior: smooth;">
+  
+      {% for it in media_items %}
+        <div class="tile text-center flex-shrink-0 mx-2" style="width: 150px;">
+          <a href="{{ it.viewer_url }}">
+            <img src="{{ it.poster_url }}" alt="{{ it.title }}" 
+                 class="thumb img-fluid rounded shadow" style="width:100%; height:auto;">
+            <div class="tile-title mt-2 text-truncate">{{ it.display_label }}</div>
           </a>
-          <div class="card-body p-2 text-center d-flex" style="align-items: end; justify-content: center;">
-            <p class="card-title small mb-0 text-truncate">{{ lib.name }}</p>
-          </div>
         </div>
-      </div>
-    {% endfor %}
+      {% endfor %}
+  
+    </div>
+  
+    <!-- Controls -->
+    <button id="prevBtn" class="btn btn-dark position-absolute top-50 start-0 translate-middle-y">‹</button>
+    <button id="nextBtn" class="btn btn-dark position-absolute top-50 end-0 translate-middle-y">›</button>
   </div>
+
 </div>
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'mediahub.js' %}"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const row = document.getElementById("mediaRow");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+  
+    const itemWidth = 150 + 16;
+  
+    function moveRow(direction) {
+      if (direction === 1) {
+        // move right
+        row.scrollBy({ left: itemWidth, behavior: "smooth" });
+        if (row.scrollLeft + row.clientWidth >= row.scrollWidth-1) {
+          // reached end → loop back
+          row.scrollTo({ left: 0, behavior: "smooth" });
+        }
+      } else {
+        // move left
+        if (row.scrollLeft === 0) {
+          // loop to end
+          row.scrollTo({ left: row.scrollWidth, behavior: "smooth" });
+        } else {
+          row.scrollBy({ left: -itemWidth, behavior: "smooth" });
+        }
+      }
+    }
+  
+    prevBtn.addEventListener("click", () => moveRow(-1));
+    nextBtn.addEventListener("click", () => moveRow(1));
+  });
+</script>
+
 </body>
 </html>

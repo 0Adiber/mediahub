@@ -3,8 +3,9 @@
     <a class="navbar-brand mb-0 h1" href="{% url 'index' %}">
       MediaHub
     </a>
-    <span class="navbar-text ms-3 d-flex align-items-center">
-      {% if breadcrumb_path %}
+
+    {% if breadcrumb_path %}
+      <span class="navbar-text ms-3 d-flex align-items-center">
         <a id="back-btn" 
            class="text-decoration-none text-white d-flex align-items-center me-2"
            {% if parent_id %} data-parent-id="{{ parent_id }}"{% endif %}>
@@ -13,10 +14,17 @@
           </svg>
         </a>
         <span class="ms-3">{{ breadcrumb_path }}</span>
-      {% else %}
-        /
-      {% endif %}
-    </span>
+      </span>
+    {% else %}
+        
+      <div class="d-flex ms-auto">
+        {% for lib in libraries %}
+          <a class="btn lib-btn" href="/library/{{ lib.slug }}">{{ lib.name}}</a>
+        {% endfor %}
+      </div>
+
+    {% endif %}
+
     <div class="d-flex ms-auto">
       {% if progress != None %}
       <button class="btn btn-outline-secondary btn-sm me-2" id="set-poster-btn">Set Poster</button>

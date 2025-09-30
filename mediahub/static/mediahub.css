@@ -115,6 +115,10 @@ body {
   cursor: pointer;
 }
 
+.lib-btn:hover {
+  background-color: #183450 !important;
+}
+
 #main-frame {
   background-size: cover;
   background-blend-mode: overlay;
