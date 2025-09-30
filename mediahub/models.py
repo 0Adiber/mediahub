@@ -32,6 +32,13 @@ class FolderItem(models.Model):
     def __str__(self):
         return self.name
 
+class Collection(models.Model):
+    tmdb_id = models.IntegerField(unique=True)
+    name = models.CharField(max_length=300)
+
+    def __str__(self):
+        return self.name
+
 class MediaItem(models.Model):
     library = models.ForeignKey(Library, on_delete=models.CASCADE, related_name="items")
     file_path = models.TextField(unique=True)
@@ -48,6 +55,7 @@ class MediaItem(models.Model):
     genre = models.JSONField(default=list)
     file_size = models.BigIntegerField(default=0)
     tmdb_id = models.IntegerField(null=True, blank=True)
+    collection = models.ForeignKey(Collection, null=True, blank=True, on_delete=models.SET_NULL, related_name="items")
 
     @property
     def display_label(self):

@@ -4,7 +4,7 @@ import hashlib
 import requests
 from pathlib import Path
 from django.conf import settings
-from .models import Library, MediaItem, FolderItem
+from .models import Library, MediaItem, FolderItem, Collection
 from django.utils.text import slugify
 import threading
 from urllib.parse import quote
@@ -71,6 +71,16 @@ def tmdb_fetch(title):
         for gid in genre_ids:
             genres.append(genres_dict[gid])
 
+        r = requests.get(
+            f"https://api.themoviedb.org/3/movie/{id}",
+            params={"api_key": api_key, "language": "en"},
+            headers={'accept': 'application/json'},
+            timeout=10
+        )
+        details = r.json()
+
+        collection = details.get('belongs_to_collection')
+
         return {
             "title": otitle, 
             "poster_url": poster_url, 
@@ -79,6 +89,7 @@ def tmdb_fetch(title):
             "year": year,
             "genres": genres,
             "id": id,
+            "collection": collection,
         }
     except Exception:
         return None
@@ -89,6 +100,18 @@ def tmdb_get(id):
     tmdb = tmdb_fetch(media_item.title)
 
     if tmdb:
+
+        c = tmdb["collection"]
+
+        if c:
+            collection, _ = Collection.objects.get_or_create(
+                tmdb_id=c["id"],
+                defaults={"name": c["name"]}
+            )
+        else:
+            collection = None
+
+        media_item.collection = collection
         media_item.title = tmdb["title"]
         media_item.description = tmdb["description"]
         media_item.year = tmdb["year"]
@@ -195,7 +218,7 @@ def scan_folder(library, path, parent_folder=None):
                 else:
                     media_item = MediaItem.objects.get(file_path = full_path)
                 
-                if media_item.library.sync and media_item.is_video and media_item.poster == None:
+                if media_item.library.sync and media_item.is_video:
                     async_task("mediahub.scanner.tmdb_get", media_item.id)
 
 

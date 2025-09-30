@@ -21,9 +21,29 @@
 
 <div class="container mt-4" z-index="99">
   
+  {% for col_data in collections %}
+    <h3 class="mt-4">{{ col_data.collection.name }}</h3>
+    <div class="position-relative mb-5">
+      <div id="collectionRow{{ forloop.counter }}" class="d-flex overflow-hidden" style="scroll-behavior: smooth;">
+        {% for it in col_data.movies %}
+          <div class="tile text-center flex-shrink-0 mx-2" style="width:150px;">
+            <a href="{{ it.viewer_url }}">
+              <img src="{{ it.poster_url }}" alt="{{ it.title }}" 
+                   class="thumb img-fluid rounded shadow" style="width:100%; height:auto;">
+              <div class="tile-title mt-2 text-truncate">{{ it.display_label }}</div>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+  
+      <button class="btn btn-dark position-absolute top-50 start-0 translate-middle-y prevBtn" data-target="collectionRow{{ forloop.counter }}">‹</button>
+      <button class="btn btn-dark position-absolute top-50 end-0 translate-middle-y nextBtn" data-target="collectionRow{{ forloop.counter }}">›</button>
+    </div>
+  {% endfor %}
+
   <div class="position-relative">
     <p>newest additions</p>
-    <div id="mediaRow" class="d-flex overflow-hidden" style="scroll-behavior: smooth;">
+    <div id="collectionRowZ" class="d-flex overflow-hidden" style="scroll-behavior: smooth;">
   
       {% for it in media_items %}
         <div class="tile text-center flex-shrink-0 mx-2" style="width: 150px;">
@@ -38,8 +58,8 @@
     </div>
   
     <!-- Controls -->
-    <button id="prevBtn" class="btn btn-dark position-absolute top-50 start-0 translate-middle-y">‹</button>
-    <button id="nextBtn" class="btn btn-dark position-absolute top-50 end-0 translate-middle-y">›</button>
+    <button class="prevBtn btn btn-dark position-absolute top-50 start-0 translate-middle-y" data-target="collectionRowZ">‹</button>
+    <button class="nextBtn btn btn-dark position-absolute top-50 end-0 translate-middle-y" data-target="collectionRowZ">›</button>
   </div>
 
 </div>
@@ -49,34 +69,47 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    const row = document.getElementById("mediaRow");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-  
-    const itemWidth = 150 + 16;
-  
-    function moveRow(direction) {
-      if (direction === 1) {
-        // move right
-        row.scrollBy({ left: itemWidth, behavior: "smooth" });
-        if (row.scrollLeft + row.clientWidth >= row.scrollWidth-1) {
-          // reached end → loop back
-          row.scrollTo({ left: 0, behavior: "smooth" });
-        }
+  const itemWidth = 150 + 16; // poster width + margin
+  const rows = document.querySelectorAll("[id^='collectionRow']");
+
+  rows.forEach(row => {
+    const prevBtn = document.querySelector(`.prevBtn[data-target='${row.id}']`);
+    const nextBtn = document.querySelector(`.nextBtn[data-target='${row.id}']`);
+
+    // function to check overflow
+    function updateButtons() {
+      if (row.scrollWidth > row.offsetWidth + 1) {
+        prevBtn.style.display = "block";
+        nextBtn.style.display = "block";
       } else {
-        // move left
-        if (row.scrollLeft === 0) {
-          // loop to end
-          row.scrollTo({ left: row.scrollWidth, behavior: "smooth" });
-        } else {
-          row.scrollBy({ left: -itemWidth, behavior: "smooth" });
-        }
+        prevBtn.style.display = "none";
+        nextBtn.style.display = "none";
       }
     }
-  
-    prevBtn.addEventListener("click", () => moveRow(-1));
-    nextBtn.addEventListener("click", () => moveRow(1));
+
+    // initial check
+    updateButtons();
+
+    // also check on window resize
+    window.addEventListener("resize", updateButtons);
+
+    // scroll handlers
+    prevBtn.addEventListener("click", () => {
+      if (row.scrollLeft <= 0) {
+        row.scrollTo({ left: row.scrollWidth, behavior: "smooth" });
+      } else {
+        row.scrollBy({ left: -itemWidth, behavior: "smooth" });
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      row.scrollBy({ left: itemWidth, behavior: "smooth" });
+      if (row.scrollLeft + row.offsetWidth >= row.scrollWidth - 1) {
+        row.scrollTo({ left: 0, behavior: "smooth" });
+      }
+    });
   });
+});
 </script>
 
 </body>

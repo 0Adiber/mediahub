@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import StreamingHttpResponse, Http404, FileResponse, JsonResponse
-from .models import Library, MediaItem, FolderItem, PlaybackProgress
+from .models import Library, MediaItem, FolderItem, PlaybackProgress, Collection
 from .scanner import scan_once_safe, load_config, get_preview, _scan_lock
 from .subtitles import get_or_fetch
 import os, mimetypes, subprocess
@@ -11,6 +11,16 @@ from PIL import Image
 import threading
 from urllib.parse import quote, unquote
 import json
+from random import sample
+
+def posterize(media_items):
+    for it in media_items:
+        if it.poster:
+            it.poster_url = "/static_cache/posters/" + it.poster
+        else:
+            it.poster_url = "/static/images/mediahub-placeholder.jpg"
+
+        it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={it.library.slug}"
 
 def index(request):
     cfg = load_config()
@@ -27,19 +37,27 @@ def index(request):
         .order_by("-id")[:10]
     )
 
-    for it in media_items:
-        if it.poster:
-            it.poster_url = "/static_cache/posters/" + it.poster
-        else:
-            it.poster_url = "/static/images/mediahub-placeholder.jpg"
+    posterize(media_items=media_items)
 
-        it.viewer_url = f"/media/player/?path={quote(it.file_path)}&lib={it.library.slug}"
+    all_collections = list(Collection.objects.all())
+    collections_to_show = sample(all_collections, 2) if len(all_collections) >= 2 else all_collections
+
+    collections_data = []
+
+    for col in collections_to_show:
+        movies = col.items.filter().order_by("id")
+        posterize(media_items=movies)
+        collections_data.append({
+            "collection": col,
+            "movies": movies,
+        })
 
     return render(request, "index.html", {
         "libraries": libs,
         "pin_required": pin_required is not None,
         "show_hidden": request.session.get("show_hidden", False),
         "media_items": media_items,
+        "collections": collections_data,
     })
 
 def get_folder_size(folder):
