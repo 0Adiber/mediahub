@@ -29,7 +29,7 @@
   {% include "_navbar.html" %}
   
   {% include "_search.html" %}
-  
+
   {% include "_toast.html" %}
 
   <div class="item-count">
@@ -43,14 +43,14 @@
           <div class="tile">
             <a href="{{ it.poster_url }}" data-pswp-width="{{ it.width }}" data-pswp-height="{{ it.height }}" class="lightbox-item">
               <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-              <div class="tile-title">{{ it.display_label }}</div>
+              <div class="tile-title" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ it.display_label }}">{{ it.display_label }}</div>
             </a>
           </div>
         {% else %}
           <div class="tile">
             <a href="{{ it.viewer_url }}">
               <img src="{{ it.poster_url }}" alt="{{ it.title }}" class="thumb">
-              <div class="tile-title">{{ it.display_label }}</div>
+              <div class="tile-title" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ it.display_label }}">{{ it.display_label }}</div>
             </a>
           </div>
         {% endif %}
@@ -85,6 +85,11 @@
               // If no parent, go back to library root
               window.location.href = "?";
           }
+      });
+
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      var tooltipList = tooltipTriggerList.map(function (el) {
+        return new bootstrap.Tooltip(el)
       });
   });
 </script>

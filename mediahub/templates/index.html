@@ -30,7 +30,7 @@
             <a href="{{ it.viewer_url }}">
               <img src="{{ it.poster_url }}" alt="{{ it.title }}" 
                    class="thumb img-fluid rounded shadow" style="width:100%; height:auto;">
-              <div class="tile-title mt-2 text-truncate">{{ it.display_label }}</div>
+              <div class="tile-title mt-2 text-truncate" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ it.display_label }}">{{ it.display_label }}</div>
             </a>
           </div>
         {% endfor %}
@@ -50,7 +50,7 @@
           <a href="{{ it.viewer_url }}">
             <img src="{{ it.poster_url }}" alt="{{ it.title }}" 
                  class="thumb img-fluid rounded shadow" style="width:100%; height:auto;">
-            <div class="tile-title mt-2 text-truncate">{{ it.display_label }}</div>
+            <div class="tile-title mt-2 text-truncate" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ it.display_label }}">{{ it.display_label }}</div>
           </a>
         </div>
       {% endfor %}
@@ -69,47 +69,53 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-  const itemWidth = 150 + 16; // poster width + margin
-  const rows = document.querySelectorAll("[id^='collectionRow']");
+    const itemWidth = 150 + 16; // poster width + margin
+    const rows = document.querySelectorAll("[id^='collectionRow']");
 
-  rows.forEach(row => {
-    const prevBtn = document.querySelector(`.prevBtn[data-target='${row.id}']`);
-    const nextBtn = document.querySelector(`.nextBtn[data-target='${row.id}']`);
+    rows.forEach(row => {
+      const prevBtn = document.querySelector(`.prevBtn[data-target='${row.id}']`);
+      const nextBtn = document.querySelector(`.nextBtn[data-target='${row.id}']`);
 
-    // function to check overflow
-    function updateButtons() {
-      if (row.scrollWidth > row.offsetWidth + 1) {
-        prevBtn.style.display = "block";
-        nextBtn.style.display = "block";
-      } else {
-        prevBtn.style.display = "none";
-        nextBtn.style.display = "none";
+      // function to check overflow
+      function updateButtons() {
+        if (row.scrollWidth > row.offsetWidth + 1) {
+          prevBtn.style.display = "block";
+          nextBtn.style.display = "block";
+        } else {
+          prevBtn.style.display = "none";
+          nextBtn.style.display = "none";
+        }
       }
-    }
 
-    // initial check
-    updateButtons();
+      // initial check
+      updateButtons();
 
-    // also check on window resize
-    window.addEventListener("resize", updateButtons);
+      // also check on window resize
+      window.addEventListener("resize", updateButtons);
 
-    // scroll handlers
-    prevBtn.addEventListener("click", () => {
-      if (row.scrollLeft <= 0) {
-        row.scrollTo({ left: row.scrollWidth, behavior: "smooth" });
-      } else {
-        row.scrollBy({ left: -itemWidth, behavior: "smooth" });
-      }
+      // scroll handlers
+      prevBtn.addEventListener("click", () => {
+        if (row.scrollLeft <= 0) {
+          row.scrollTo({ left: row.scrollWidth, behavior: "smooth" });
+        } else {
+          row.scrollBy({ left: -itemWidth, behavior: "smooth" });
+        }
+      });
+
+      nextBtn.addEventListener("click", () => {
+        row.scrollBy({ left: itemWidth, behavior: "smooth" });
+        if (row.scrollLeft + row.offsetWidth >= row.scrollWidth - 1) {
+          row.scrollTo({ left: 0, behavior: "smooth" });
+        }
+      });
     });
 
-    nextBtn.addEventListener("click", () => {
-      row.scrollBy({ left: itemWidth, behavior: "smooth" });
-      if (row.scrollLeft + row.offsetWidth >= row.scrollWidth - 1) {
-        row.scrollTo({ left: 0, behavior: "smooth" });
-      }
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (el) {
+      return new bootstrap.Tooltip(el)
     });
+
   });
-});
 </script>
 
 </body>

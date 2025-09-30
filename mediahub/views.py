@@ -43,7 +43,7 @@ def index(request):
     collections_data = []
 
     for col in collections_to_show:
-        movies = col.items.filter().order_by("id")
+        movies = col.items.filter().order_by("year")
         posterize(media_items=movies)
         collections_data.append({
             "collection": col,

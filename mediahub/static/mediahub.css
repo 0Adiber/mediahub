@@ -143,6 +143,16 @@ body {
   background-color: rgba(15, 33, 51, 0.8);
 }
 
+.tooltip-inner {
+  background-color: #333;
+  color: #fff;
+}
+
+.tooltip-arrow::before {
+  border-top-color: #333 !important;
+}
+
+
 /* Mobile adjustments */
 @media (max-width: 1200px) {
   .tile-title {
