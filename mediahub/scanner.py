@@ -218,7 +218,7 @@ def scan_folder(library, path, parent_folder=None):
                 else:
                     media_item = MediaItem.objects.get(file_path = full_path)
                 
-                if media_item.library.sync and media_item.is_video:
+                if media_item.library.sync and media_item.is_video and media_item.poster == None:
                     async_task("mediahub.scanner.tmdb_get", media_item.id)
 
 
