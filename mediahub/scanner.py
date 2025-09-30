@@ -242,7 +242,6 @@ def scan_once_safe():
     with _scan_lock:
         scan_once()
 
-
 def capture_frame(video_path, output_path, time="00:00:05"):
     """Capture a frame at 5 seconds (default)"""
     subprocess.run([

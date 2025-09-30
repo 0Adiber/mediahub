@@ -1,5 +1,6 @@
 const input = document.getElementById("search-input");
 const results = document.getElementById("search-results");
+const refreshBtn = document.getElementById("refresh-btn")
 
 let timeout = null;
 
@@ -82,3 +83,15 @@ function showToast(message, isError = false) {
     const toast = new bootstrap.Toast(toastEl);
     toast.show();
 }
+
+refreshBtn.addEventListener("click", () => {
+    fetch(`/refresh`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.lock === true) {
+                showToast("Refresh already in progress", true)
+            } else {
+                showToast("Refreshing", false)
+            }
+        })
+})
